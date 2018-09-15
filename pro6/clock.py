@@ -23,12 +23,12 @@ class Clock:
     # TODO: rework these *updated methods to use an observer pattern
     def _clock_updated(self):
         # We can't do anything until we have a presentation
-        if not self.ready():
+        if not self.ready:
             return
-        if self.current_video_position < self._zero_time:
-            logging.warning('Illegal video position < 0: %s' % self.current_video_position)
-            logging.warning('Resetting total video duration to %s' % self._video_duration_remaining)
-            self._video_total_duration = self._video_duration_remaining
+        # if self.current_video_position < self._zero_time:
+        #     logging.warning('Illegal video position < 0: %s' % self.current_video_position)
+        #     logging.warning('Resetting total video duration to %s' % self._video_duration_remaining)
+        #     self._video_total_duration = self._video_duration_remaining
 
         # Update segment information
         pos = self.current_video_position
@@ -73,12 +73,9 @@ class Clock:
         self._current_segment = None
         self._video_total_duration = None
 
+    @property
     def ready(self):
         return self._segment_markers is not None
-
-    @property  # Alias for ready()
-    def is_old(self):
-        return self.ready()
 
     @property
     def slide_index(self):
