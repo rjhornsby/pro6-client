@@ -1,0 +1,9 @@
+# Created by .ignore support plugin (hsz.mobi)
+.idea/
+venv/
+*.lock
+actions
+pro6-cli
+rundown*
+__pycache__
+*.pyc
