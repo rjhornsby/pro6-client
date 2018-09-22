@@ -18,7 +18,7 @@ if platform.system() == 'Linux':
 
 PASSWORD = 'control'
 # target_host = "%s.local." % gethostname()
-target_host = "aztec.local."
+target_host = "warrior.local."
 logging.basicConfig(level=logging.INFO)
 
 
@@ -29,8 +29,10 @@ def pi_lcd_send(method, *args, **kwargs):
     if callable(handler_method):
         handler_method(method)
 
+
 def pi_led_send(method, *args, **kwargs):
     if pi_led is None: return
+
     handler_method = getattr(pi_led, method)(*args, **kwargs)
     if callable(handler_method):
         handler_method(method)
@@ -65,7 +67,13 @@ if __name__ == "__main__":
     p6_remote.current_slide()
     p6_clock = pro6.Clock(message_queue=message_queue)
 
-    pi_lcd.clear()
+    pi_lcd_send('clear')
+
+    if pi_lcd is not None:
+        p6_clock.subscribe(pi_lcd)
+
+    if pi_led is not None:
+        p6_clock.subscribe(pi_led)
 
     while True:
         try:
@@ -75,36 +83,15 @@ if __name__ == "__main__":
                     message_handler.do(incoming_message)
                 elif incoming_message.kind is pro6.Message.Kind.EVENT:
                     if incoming_message.name == 'slide_change':
-                        # we need two things from pro6 - one is the index of
-                        # the new slide and the presentation if we don't have
-                        # it already
-                        pi_lcd_send('clear')
                         p6_clock.reset()
                         p6_clock.slide_index = incoming_message['index']
-                        if not p6_clock.ready:
-                            pi_lcd_send('display_message', 'No slide data')
                     elif incoming_message.name == 'presentation_change':
-                        pi_lcd_send('clear')
                         p6_clock.reset()
                         p6_clock.presentation = incoming_message['presentation']
-                        if not p6_clock.ready:
-                            pi_lcd_send('display_message', 'No slide data')
                     elif incoming_message.name == 'segment_change':
-                        if PI_PLATFORM:
-                            pi_lcd_send('show_segment', p6_clock.segment_name)
+                        pass
                     elif incoming_message.name == 'video_advance':
                         p6_clock.update_clock(incoming_message['timecode'])
-                        if PI_PLATFORM and p6_clock.ready:
-                            pi_lcd_send('show_time_remaining', total_time_remaining=p6_clock.video_duration_remaining, segment_time_remaining=p6_clock.segment_time_remaining)
-                            pi_lcd_send('show_time_elapsed', time_elapsed=p6_clock.current_video_position)
-                            if p6_clock.segment_time_remaining <= datetime.timedelta(seconds=5):
-                                pi_led_send('red', p6_clock.segment_time_remaining)
-                            elif p6_clock.segment_time_remaining <= datetime.timedelta(seconds=10):
-                                pi_led_send('yellow', p6_clock.segment_time_remaining)
-                            elif p6_clock.segment_time_remaining <= datetime.timedelta(seconds=30):
-                                pi_led_send('green')
-                            else:
-                                pi_led_send('clear')
                     else:
                         print("Unhandled event: %s" % incoming_message)
                 else:

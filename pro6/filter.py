@@ -74,7 +74,7 @@ class Filter:
         data = OrderedDict()
         for line in notes.split("\n"):
             if not line == '':  # ignore blank lines
-                (in_point, out_point, clip_name, duration) = line.split("\t")
+                (in_point, out_point, clip_name) = line.split("\t")
                 data[Filter.str_to_time(in_point)] = {
                     'in': Filter.str_to_time(in_point),
                     'out': Filter.str_to_time(out_point),
