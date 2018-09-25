@@ -5,19 +5,19 @@ from lib.observer import Notifier
 
 
 class Clock(Notifier):
-    def __init__(self, slide_index=None, presentation=None, message_queue=None):
+    def __init__(self, message_queue=None):
         self._ready = False
         self.message_queue = message_queue
 
-        self._slide_index = slide_index
-        self._presentation = presentation
+        # self._slide_index = slide_index
+        # self._presentation = presentation
 
         self._video_total_duration = None
         self._video_duration_remaining = None  # Will come from WS vid pro6
         self._segment_markers = None
         self._current_segment = None
 
-        self._presentation_updated()
+        # self._presentation_updated()
 
     # TODO: rework these *updated methods to use an observer pattern
     def _clock_updated(self):
@@ -29,13 +29,13 @@ class Clock(Notifier):
 
         if self._current_segment is None:
             self._find_current_segment()
-            event = Message(message_content={'event': 'segment_change', 'segment': self._current_segment})
+            # event = Message(message_content={'event': 'segment_change', 'segment': self._current_segment})
         else:
             # Update segment information
             pos = self.current_video_position
             if not (self._current_segment['in'] <= pos <= self._current_segment['out']):
                 self._find_current_segment()
-                event = Message(message_content={'event': 'segment_change', 'segment': self._current_segment})
+                # event = Message(message_content={'event': 'segment_change', 'segment': self._current_segment})
                 logging.info("New segment: %s" % self._current_segment)
 
         if event is not None:
@@ -53,16 +53,14 @@ class Clock(Notifier):
 
         self._check_ready()
 
-    def _presentation_updated(self):
-        if self._presentation is None or self._slide_index is None:
+    def new_slide(self, segment_markers):
+        self.reset()
+        if segment_markers is None:
+            logging.info('No segment data for slide')
             return
 
-        current_slide = self._presentation['slides'][self._slide_index]
-        if current_slide['segments'] is not None:
-            self._segment_markers = current_slide['segments']
-            self._video_total_duration = next(reversed(self._segment_markers.values()))['out']
-        else:
-            logging.info('No segment data for selected slide')
+        self._segment_markers = segment_markers
+        self._video_total_duration = next(reversed(self._segment_markers.values()))['out']
 
         self._check_ready()
 
@@ -88,24 +86,6 @@ class Clock(Notifier):
     @property
     def ready(self):
         return self._ready
-
-    @property
-    def slide_index(self):
-        return self._slide_index
-
-    @slide_index.setter
-    def slide_index(self, index):
-        self._slide_index = index
-        self._presentation_updated()
-
-    @property
-    def presentation(self): return self._presentation
-
-    @presentation.setter
-    def presentation(self, presentation):
-        self.reset()
-        self._presentation = presentation
-        self._presentation_updated()
 
     @property
     def current_video_position(self):

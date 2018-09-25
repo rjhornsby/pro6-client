@@ -11,19 +11,9 @@ class Handler:
             handler_method(message)
         else:
             logging.warning("No method to handle action %s" % message.name)
-            print(message)
 
-    def _presentationCurrent(self, message):
-        event = Message(message_content={'event': 'presentation_change', 'presentation': message['presentation']})
-        self.manager_queue.put(event)
-
-    def _presentationSlideIndex(self, message):
-        self._presentationTriggerIndex(message)
-
-    def _presentationTriggerIndex(self, message):
-        print(message)
-        self.current_stage = None
-        event = Message(message_content={'event': 'slide_change', 'index': int(message['slideIndex'])})
+    def _csn(self, message):
+        event = Message(message_content={'event': 'slide_change', 'segment_markers': message['segment_markers']})
         self.manager_queue.put(event)
 
     def _vid(self, message):

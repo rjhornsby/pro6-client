@@ -4,7 +4,6 @@ import queue
 import logging
 import sys
 from time import sleep
-import datetime
 import platform
 
 PI_PLATFORM = False
@@ -52,19 +51,15 @@ if __name__ == "__main__":
     pi_lcd_send('display_message', "Connecting to", lcd_line=1)
     pi_lcd_send('display_message', remote_endpoint, lcd_line=2)
 
-    p6_remote = pro6.WebSocket(PASSWORD, '_pro6proremote', remote_endpoint, message_queue)
     p6_stage = pro6.WebSocket(PASSWORD, '_pro6stagedsply', remote_endpoint, message_queue)
-    p6_remote.run()
     p6_stage.run()
 
-    while not p6_stage.connected and not p6_remote.connected:
+    while not p6_stage.connected:  # and not p6_remote.connected:
         logging.debug('Waiting for connections...')
         sleep(1)
 
     # request initial state
     p6_stage.stage_configuration()
-    p6_remote.current_presentation()
-    p6_remote.current_slide()
     p6_clock = pro6.Clock(message_queue=message_queue)
 
     pi_lcd_send('clear')
@@ -83,11 +78,7 @@ if __name__ == "__main__":
                     message_handler.do(incoming_message)
                 elif incoming_message.kind is pro6.Message.Kind.EVENT:
                     if incoming_message.name == 'slide_change':
-                        p6_clock.reset()
-                        p6_clock.slide_index = incoming_message['index']
-                    elif incoming_message.name == 'presentation_change':
-                        p6_clock.reset()
-                        p6_clock.presentation = incoming_message['presentation']
+                        p6_clock.new_slide(incoming_message['segment_markers'])
                     elif incoming_message.name == 'segment_change':
                         pass
                     elif incoming_message.name == 'video_advance':
@@ -99,7 +90,6 @@ if __name__ == "__main__":
 
         except KeyboardInterrupt:
             logging.info("shutting down")
-            p6_remote.stop()
             p6_stage.stop()
 
             sys.exit(0)

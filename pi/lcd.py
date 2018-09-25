@@ -12,7 +12,7 @@ class LCD(Subscriber):
         self.clear()
         self._message_line = None
         self._segment_name = None
-        self._wait_chars = '.;:'
+        self._wait_chars = '._'
         self._wait_char_idx = 0
 
     def notify(self, obj, param, value):
@@ -25,18 +25,27 @@ class LCD(Subscriber):
         # maybe the clock shouldn't be allowed to push updates more than
         # once per second?
 
-        if getattr(obj, "ready", None) is not None:
-            if not obj.ready:
-                wait_char = self._wait_chars[self._wait_char_idx]
-                self.display_message('%s Waiting for data %s' % (wait_char, wait_char))
-                self._wait_char_idx += 1
-                if self._wait_char_idx >= len(self._wait_chars):
-                    self._wait_char_idx = 0
-                return
+        print("notified:%s" % param)
+
+        if param == '_ready':
+            self._reset()
+
+            if value is False:
+                self.display_message('  Waiting for data')
 
         if type(obj) is pro6.clock.Clock:
             clock = obj
         else:
+            return
+
+        if not clock.ready:
+
+            wait_char = self._wait_chars[self._wait_char_idx]
+            self._display.lcd_display_string(wait_char, 4, 0)
+            self._display.lcd_display_string(wait_char, 4, 19)
+            self._wait_char_idx += 1
+            if self._wait_char_idx >= len(self._wait_chars):
+                self._wait_char_idx = 0
             return
 
         if self._segment_name is None or param == '_current_segment':
@@ -69,3 +78,8 @@ class LCD(Subscriber):
 
     def clear_message(self):
         self._display.lcd_display_string(' ' * 20, line=self._message_line, pos=0)
+
+    def _reset(self):
+        self.clear()
+        self._segment_name = None
+        self._message_line = None

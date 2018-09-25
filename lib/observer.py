@@ -1,7 +1,7 @@
 class Subscriber:
     def notify(self, obj, param, value):
         pass
-        # print("{} has changed {} to {}".format(obj, param, value))
+        # The subscribed/listening class should implement notify()
 
 class Notifier:
     def __setattr__(self, name, value):
