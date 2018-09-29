@@ -57,14 +57,14 @@ class Filter:
         for line in notes.split("\n"):
             if not line == '':  # ignore blank lines
                 (in_point, out_point, clip_name) = line.split("\t")
-                data[Filter.str_to_time(in_point)] = {
-                    'in': Filter.str_to_time(in_point),
-                    'out': Filter.str_to_time(out_point),
+                data[Filter.str_to_time(in_point.replace(';', ':'))] = {
+                    'in': Filter.str_to_time(in_point.replace(';', ':')),
+                    'out': Filter.str_to_time(out_point.replace(';', ':')),
                     'name': clip_name
                 }
         return data
 
     @staticmethod
     def str_to_time(str_time):
-        (h, m, s) = str_time.split(':')
+        h, m, s, *trash = str_time.split(':', 3)
         return datetime.timedelta(hours=int(h), minutes=int(m), seconds=int(s))
