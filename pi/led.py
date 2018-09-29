@@ -2,7 +2,6 @@
 import RPi.GPIO as GPIO
 import Adafruit_WS2801
 import Adafruit_GPIO.SPI as SPI
-import time
 from lib.observer import Subscriber
 import pro6
 import datetime
@@ -24,7 +23,7 @@ class LED(Subscriber):
 
         if not clock.ready: return
 
-        if param == '_video_duration_remaining':
+        if param == 'video_duration_remaining':
             if clock.segment_time_remaining <= datetime.timedelta(seconds=5):
                 self.red(clock.segment_time_remaining)
             elif clock.segment_time_remaining <= datetime.timedelta(seconds=10):

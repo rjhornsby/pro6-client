@@ -1,5 +1,7 @@
 from enum import Enum
 from pro6.filter import Filter
+import time
+
 
 class Message:
 
@@ -15,6 +17,7 @@ class Message:
         else:
             self._source = source
 
+        self._timestamp = time.monotonic()
         self._kind = None  # Initialize it
         self.set_message_kind(kind)  # pass the argument we were passed
 
@@ -27,6 +30,10 @@ class Message:
             return self._message['error']
         else:
             return None
+
+    @property
+    def timestamp(self):
+        return self._timestamp
 
     @property
     def source(self):

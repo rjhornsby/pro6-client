@@ -6,6 +6,9 @@ class Subscriber:
 class Notifier:
     def __setattr__(self, name, value):
         super().__setattr__(name, value)
+        # Ignore private class attributes
+        if name[0] == '_': return
+
         for subscriber in getattr(self, '_subscribers', []):
             subscriber.notify(self, name, value)
 

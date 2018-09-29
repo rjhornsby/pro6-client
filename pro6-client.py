@@ -78,11 +78,11 @@ if __name__ == "__main__":
                     message_handler.do(incoming_message)
                 elif incoming_message.kind is pro6.Message.Kind.EVENT:
                     if incoming_message.name == 'slide_change':
-                        p6_clock.new_slide(incoming_message['segment_markers'])
+                        p6_clock.new_slide(incoming_message)
                     elif incoming_message.name == 'segment_change':
                         pass
                     elif incoming_message.name == 'video_advance':
-                        p6_clock.update_clock(incoming_message['timecode'])
+                        p6_clock.update_clock(incoming_message)
                     else:
                         print("Unhandled event: %s" % incoming_message)
                 else:
