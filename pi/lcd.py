@@ -1,24 +1,26 @@
-#!/usr/bin/env python3.7
 import time
+import datetime
 from . import I2C_LCD_driver
 from lib.observer import Subscriber
 import pro6
-
+import threading
 
 class LCD(Subscriber):
     def __init__(self):
 
         self._display = I2C_LCD_driver.lcd()
-        self.clear()
         self._message_line = None
         self._segment_name = None
         self._wait_chars = '._'
         self._wait_char_idx = 0
+        self.stopping = False
+        self._t = None
+        self._t_lock = threading.Lock()
+        self._curr_date = None
+        self._curr_date_str = None
+        self.clear()
 
     def notify(self, obj, param, value):
-        # This time of day clock needs to be in a thread of its own so it keeps going no matter what
-        # self._display.lcd_display_string(time.strftime('%a %d %b  %H:%M:%S'), line=1, pos=0)
-
         if param == 'ready':
             self._reset()
 
@@ -31,13 +33,6 @@ class LCD(Subscriber):
             return
 
         if not clock.ready:
-
-            wait_char = self._wait_chars[self._wait_char_idx]
-            self._display.lcd_display_string(wait_char, 4, 0)
-            self._display.lcd_display_string(wait_char, 4, 19)
-            self._wait_char_idx += 1
-            if self._wait_char_idx >= len(self._wait_chars):
-                self._wait_char_idx = 0
             return
 
         if self._segment_name is None or param == 'current_segment':
@@ -46,24 +41,66 @@ class LCD(Subscriber):
         elif param == 'video_duration_remaining':
             self._update_video_clocks(clock)
 
+    def rtc_run(self):
+        self._t = threading.Thread(target=self._rtc_loop)
+        self._t.start()
+        self._t.join(2.0)
+
+    def rtc_stop(self):
+        self.stopping = True
+
+    def _rtc_loop(self):
+        # FIXME: This is not displaying the date correctly
+        while not self.stopping:
+            try:
+                if self._message_line is not 1:
+                    with self._t_lock:
+                        if self.date_as_string():
+                            self._display.lcd_display_string(self._curr_date_str, 1, 0)
+                        self._display.lcd_display_string(time.strftime("%H:%M:%S"), 1, 12)
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                self.rtc_stop()
+
+    def date_as_string(self):
+        updated = False
+        if datetime.date != self._curr_date:
+            updated = True
+            self._curr_date = datetime.date
+            # python uses a zero-based week number, calendars generally use one-based.
+            week = int(time.strftime('%U'))
+            if time.strftime('%w') == '6':
+                week += 2  # For our purposes, Saturday is part of next week
+            else:
+                week += 1
+            day = time.strftime("%a")[0:2]
+            self._curr_date_str = time.strftime("W{} {}%d%b").format(str(week), day)
+
+        return updated
+
     def clear(self):
-        self._display.lcd_write(0x01)
+        with self._t_lock:
+            self._display.lcd_write(0x01)
 
     def display_message(self, message_str, lcd_line=4):
         self._message_line = lcd_line
-        self._display.lcd_display_string(message_str, line=lcd_line, pos=0)
+        with self._t_lock:
+            self._display.lcd_display_string(message_str, line=lcd_line, pos=0)
 
     def clear_message(self):
-        self._display.lcd_display_string(' ' * 20, line=self._message_line, pos=0)
+        with self._t_lock:
+            self._display.lcd_display_string(' ' * 20, line=self._message_line, pos=0)
 
     def _update_video_clocks(self, clock):
-        self._display.lcd_display_string("-%s" % str(clock.segment_time_remaining), line=3, pos=12)
-        self._display.lcd_display_string("+%s" % str(clock.current_video_position), line=4, pos=0)
-        self._display.lcd_display_string("-%s" % str(clock.video_duration_remaining), line=4, pos=12)
+        with self._t_lock:
+            self._display.lcd_display_string("-%s" % str(clock.segment_time_remaining), line=3, pos=12)
+            self._display.lcd_display_string("+%s" % str(clock.current_video_position), line=4, pos=0)
+            self._display.lcd_display_string("-%s" % str(clock.video_duration_remaining), line=4, pos=12)
 
     def _show_segment(self, name=None):
         self.clear()
-        self._display.lcd_display_string("%s" % name, line=2)
+        with self._t_lock:
+            self._display.lcd_display_string("%s" % name, line=2)
 
     def _reset(self):
         self.clear()
