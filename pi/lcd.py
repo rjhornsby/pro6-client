@@ -50,7 +50,6 @@ class LCD(Subscriber):
         self.stopping = True
 
     def _rtc_loop(self):
-        # FIXME: This is not displaying the date correctly
         while not self.stopping:
             try:
                 if self._message_line is not 1:
@@ -70,7 +69,7 @@ class LCD(Subscriber):
             # python uses a zero-based week number, calendars generally use one-based.
             week = int(time.strftime('%U'))
             if time.strftime('%w') == '6':
-                week += 2  # For our purposes, Saturday is part of next week
+                week += 2  # For our purposes, Saturday is part of next week (Weeks start on Sunday)
             else:
                 week += 1
             day = time.strftime("%a")[0:2]
@@ -80,7 +79,10 @@ class LCD(Subscriber):
 
     def clear(self):
         with self._t_lock:
+
             self._display.lcd_write(0x01)
+            # Force the RTC loop to redraw the date
+            self._curr_date = None
 
     def display_message(self, message_str, lcd_line=4):
         self._message_line = lcd_line
