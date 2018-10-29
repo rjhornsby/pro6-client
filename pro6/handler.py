@@ -10,7 +10,7 @@ class Handler:
         if callable(handler_method):
             handler_method(message)
         else:
-            logging.warning("No method to handle action %s" % message.name)
+            logging.debug("No method to handle action %s" % message.name)
 
     def _csn(self, message):
         event = Message(message_content={'event': 'slide_change', 'segment_markers': message['segment_markers']})

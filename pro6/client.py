@@ -16,11 +16,10 @@ class Client(Subscriber, Notifier):
         self.led = pi.LED()
 
         self.event = None
+        self.connected = False
 
         self._p6_clock.subscribe(self.lcd)
         self.subscribe(self._p6_clock)
-
-        # if RTC_DISPLAY_ENABLE: self.lcd.rtc_run()
 
     def stop(self):
         self.lcd.rtc_stop()
@@ -28,6 +27,8 @@ class Client(Subscriber, Notifier):
     def notify(self, obj, param, value):
         if param == 'message_pending':
             self.process_messages()
+        elif param == 'connected':
+            self.connected = value
 
     def process_messages(self):
         while not self._msg_queue.empty():
@@ -35,6 +36,8 @@ class Client(Subscriber, Notifier):
             if incoming_message.kind is pro6.Message.Kind.ACTION:
                 self._message_handler.do(incoming_message)
             elif incoming_message.kind is pro6.Message.Kind.EVENT:
+                self.event = incoming_message
+            elif incoming_message.kind is pro6.Message.Kind.ERROR:
                 self.event = incoming_message
             else:
                 print("Unhandled queue object: %s" % incoming_message)

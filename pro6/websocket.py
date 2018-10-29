@@ -77,10 +77,13 @@ class WebSocket(Notifier):
                         logging.info("%s ready" % self._service_type)
                         self.connected = True
                         self.authenticate()
+                        self.stage_configuration()
+                    elif action.name == "disconnected":
+                        self.connected = False
                     elif action.name == "poll":
                         self._ws.send_ping(b'@')
                     elif action.name == "text":
-                        message = Message(json.loads(action.text), source=self._service_type, kind=Message.Kind.ACTION)
+                        message = Message(json.loads(action.text),  kind=Message.Kind.ACTION, source=self._service_type)
 
                         if message['action'] == 'psl':
                             self._active_stage_uid = message['uid']

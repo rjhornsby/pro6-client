@@ -1,13 +1,14 @@
 from enum import Enum
 from pro6.filter import Filter
 import time
-
+import logging
 
 class Message:
 
     class Kind(Enum):
         ACTION = 0
         EVENT = 1
+        ERROR = 2
 
     def __init__(self, message_content=None, kind=None, source=None):
         self._message = message_content
@@ -47,8 +48,10 @@ class Message:
     def name(self):
         if self._kind is self.Kind.ACTION:
             return self._message['action']
-        else:
+        elif self._kind is self.Kind.EVENT:
             return self._message['event']
+        elif self._kind is self.Kind.ERROR:
+            return self._message['error']
 
     def __getitem__(self, key):
         return self._message.get(key, None)

@@ -8,7 +8,7 @@ from pro6 import Message
 
 class Clock(Notifier, Subscriber):
 
-    THROTTLE_THRESHOLD = 0.50
+    THROTTLE_THRESHOLD = 0.25
 
     def __init__(self):
         self.ready = False
@@ -16,20 +16,25 @@ class Clock(Notifier, Subscriber):
         self.current_segment = None
 
         self._video_total_duration = None
-
         self._segment_markers = None
         self._last_update = time.monotonic()
+        self.ws_connected = False
 
     def notify(self, obj, param, value):
         if type(value) is Message:
-            message = value
-        else:
-            return
+            self._process_message(value)
+        elif param == 'connected':
+            if self.ws_connected != value:
+                self.ws_connected = value
+            self._check_ready()
 
+    def _process_message(self, message):
         if message.name == 'slide_change':
             self.new_slide(message)
         elif message.name == 'video_advance':
             self.update_timecode(message)
+        else:
+            logging.warning("Unknown message name '%s'" % message.name)
 
     def _timecode_updated(self):
 
@@ -84,6 +89,11 @@ class Clock(Notifier, Subscriber):
         if self._video_total_duration is None:
             self.ready = False
             return
+
+        if self.ws_connected is False:
+            self.ready = False
+            return
+
 
         # Seems dumb, but without the 'if' python treats self.ready as if it is always being
         # set, even if the value didn't actually change. This generates a notification to all

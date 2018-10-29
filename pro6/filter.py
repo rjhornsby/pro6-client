@@ -3,6 +3,7 @@ import datetime
 from collections import OrderedDict
 import logging
 
+
 class Filter:
 
     # Fix the garbage nonsense where the same message is sent
@@ -17,6 +18,12 @@ class Filter:
             payload['authenticated'] = (payload['authenticated'] == 1)
         if 'ath' in payload:
             payload['authenticated'] = payload.pop('ath')
+
+        if 'action' in payload:
+            Filter.process_action(payload)
+
+    @staticmethod
+    def process_action(payload):
         if payload['action'] == 'ath':
             payload['action'] = 'authenticate'
         if payload['action'] == 'csn':
