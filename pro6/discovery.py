@@ -6,10 +6,10 @@ from time import sleep
 
 class Discovery:
 
-    def __init__(self, service_type, host=None):
+    def __init__(self, service_type, host_list=None):
         self.endpoint = None
         self.pro6_discovered = False
-        self.host = host
+        self.host_list = host_list
         self.service_type = service_type
 
     def on_service_state_change(self, zeroconf, service_type, name, state_change):
@@ -18,9 +18,9 @@ class Discovery:
         if state_change is ServiceStateChange.Added:
             info = zeroconf.get_service_info(service_type, name)
             if info:
-                if self.host is not None:
-                    if self.host != info.server:
-                        logging.info("Found server %s, but it does not match %s" % (info.server, self.host))
+                if self.host_list is not None:
+                    if info.server not in self.host_list:
+                        logging.info("Found server %s, but not on our list" % info.server)
                         return
 
                 self.pro6_discovered = True
@@ -36,7 +36,7 @@ class Discovery:
         try:
             while not self.pro6_discovered:
                 logging.info("Looking for %s..." % self.service_type)
-                sleep(1.0)
+                sleep(3.0)
         except KeyboardInterrupt:
             pass
         finally:
