@@ -67,10 +67,15 @@ class LCD(Subscriber):
             updated = True
             self._curr_date = datetime.date
             # python uses a zero-based week number, calendars generally use one-based.
-            # We'll use the iCal calendar week, making Saturday the week # we use, not the
-            # Sunday.
             week = int(time.strftime('%U')) + 1
+
+            # Use the Sunday week number, not Saturday. If today is Saturday,
+            # "cheat" and use the next week.
+            if time.strftime('%w') == '6':
+                week += 1
+
             day = time.strftime("%a")[0:2]
+
             self._curr_date_str = time.strftime("W{} {}%d%b").format(str(week), day)
 
         return updated
