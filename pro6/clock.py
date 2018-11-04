@@ -69,6 +69,7 @@ class Clock(Notifier, Subscriber):
             return
 
         self._segment_markers = message['segment_markers']
+        # last
         self._video_total_duration = next(reversed(self._segment_markers.values()))['out']
 
         self._check_ready()

@@ -41,7 +41,7 @@ class Filter:
             slide['segment_markers'] = None
         else:
             decoded = Filter.decode_base64(slide['slideNotes'])
-            data = Filter.note_text_to_data(decoded)
+            data = Filter.premiere_markers_to_data(decoded)
             slide['segment_markers'] = data
         del slide['slideNotes']
 
@@ -49,11 +49,41 @@ class Filter:
     def decode_base64(s):
         # TODO: Make this check to ensure 's' a base64 encoded string
         try:
-            decoded_string = base64.b64decode(s).decode()
+            decoded_string = base64.b64decode(s).decode(encoding='utf-16')
             return decoded_string  # bytes to string
-        except Exception:
-            logging.error("Unable to decode base64 string %s" % s)
+        except Exception as e:
+            logging.error("Unable to decode base64 string %s" % e)
             return ''
+
+    @staticmethod
+    def premiere_markers_to_data(markers):
+        if not markers: return None
+
+        # Premiere's format:
+        # Marker Name	Description	In	Out	Duration	Marker Type
+        # countdown		00;00;00;00	00;00;00;00	00;00;00;00	Comment
+        # Note the two tabs after the name
+
+        data = OrderedDict()
+        for line in markers.split("\n"):
+            if not line or line.startswith('Marker Name'): continue
+            (marker_name, _, in_point, out_point, _) = line.split("\t", 4)
+            data[Filter.str_to_time(in_point.replace(';', ':'))] = {
+                'in': Filter.str_to_time(in_point.replace(';', ':')),
+                'out': Filter.str_to_time(out_point.replace(';', ':')),
+                'name': marker_name
+            }
+        Filter.set_out_points(data)
+        return data
+
+    @staticmethod
+    def set_out_points(data):
+        # The out point of the current segment is the in point of the
+        # _next_ segment.
+        for idx, in_point in enumerate(data):
+            marker = data[in_point]
+            if marker['in'] == marker['out'] and idx < len(data):
+                marker['out'] = list(data.values())[idx+1]['in']
 
     @staticmethod
     def note_text_to_data(notes):
