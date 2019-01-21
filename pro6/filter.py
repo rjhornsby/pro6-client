@@ -67,11 +67,12 @@ class Filter:
         data = OrderedDict()
         for line in markers.split("\n"):
             if not line or line.startswith('Marker Name'): continue
-            (marker_name, _, in_point, out_point, _) = line.split("\t", 4)
+            (marker_name, flags, in_point, out_point, _) = line.split("\t", 4)
             data[Filter.str_to_time(in_point.replace(';', ':'))] = {
                 'in': Filter.str_to_time(in_point.replace(';', ':')),
                 'out': Filter.str_to_time(out_point.replace(';', ':')),
-                'name': marker_name
+                'name': marker_name,
+                'flags': flags
             }
         Filter.set_out_points(data)
         return data

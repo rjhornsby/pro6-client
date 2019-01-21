@@ -95,7 +95,6 @@ class Clock(Notifier, Subscriber):
             self.ready = False
             return
 
-
         # Seems dumb, but without the 'if' python treats self.ready as if it is always being
         # set, even if the value didn't actually change. This generates a notification to all
         # observers.
@@ -112,6 +111,16 @@ class Clock(Notifier, Subscriber):
             return None
 
         return self.current_segment['name']
+
+    @property
+    def flags(self):
+        if self.current_segment is None:
+            return None
+        return self.current_segment['flags']
+
+    @property
+    def hide_led(self):
+        return '!' in self.flags
 
     @property
     def segment_time_remaining(self):

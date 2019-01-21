@@ -19,6 +19,7 @@ class Client(Subscriber, Notifier):
         self.connected = False
 
         self._p6_clock.subscribe(self.lcd)
+        self._p6_clock.subscribe(self.led)
         self.subscribe(self._p6_clock)
 
     def stop(self):
