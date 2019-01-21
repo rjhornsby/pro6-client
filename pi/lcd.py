@@ -16,8 +16,8 @@ class LCD(Subscriber):
         self.stopping = False
         self._t = None
         self._t_lock = threading.Lock()
-        self._curr_date = None
         self._curr_date_str = None
+        self._curr_date = datetime.date.today()
         self.clear()
 
     def notify(self, obj, param, value):
@@ -25,7 +25,8 @@ class LCD(Subscriber):
             self._reset()
 
             if value is False:
-                self.display_message('  Waiting for data')
+                self.display_message('Waiting for', 3)
+                self.display_message('ProPresenter', 4)
 
         if type(obj) is pro6.clock.Clock:
             clock = obj
@@ -62,10 +63,11 @@ class LCD(Subscriber):
                 self.rtc_stop()
 
     def date_as_string(self):
+
         updated = False
-        if datetime.date != self._curr_date:
+        if datetime.date.today() > self._curr_date:
             updated = True
-            self._curr_date = datetime.date
+            self._curr_date = datetime.date.today()
             # python uses a zero-based week number, calendars generally use one-based.
             week = int(time.strftime('%U')) + 1
 
@@ -76,7 +78,11 @@ class LCD(Subscriber):
 
             day = time.strftime("%a")[0:2]
 
-            self._curr_date_str = time.strftime("W{} {}%d%b").format(str(week), day)
+            # zero-pad the week number
+            week_str = str(week).zfill(2)
+            month = time.strftime("%b")[0:2]
+
+            self._curr_date_str = time.strftime("Wk{} {}%d{}").format(week_str, day, month)
 
         return updated
 
@@ -85,7 +91,7 @@ class LCD(Subscriber):
 
             self._display.lcd_write(0x01)
             # Force the RTC loop to redraw the date
-            self._curr_date = None
+            self._curr_date = datetime.date(1980, 1, 1)
 
     def display_message(self, message_str, lcd_line=4):
         self._message_line = lcd_line
