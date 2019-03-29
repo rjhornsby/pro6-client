@@ -6,6 +6,10 @@ name = "pypi"
 [packages]
 lomond = "*"
 zeroconf = "*"
+smbus-cffi = "*"
+neopixel = "*"
+osc4py3 = "*"
+pyyaml = "*"
 
 [dev-packages]
 

@@ -113,14 +113,20 @@ class Clock(Notifier, Subscriber):
         return self.current_segment['name']
 
     @property
-    def flags(self):
+    def control_data(self):
         if self.current_segment is None:
             return None
-        return self.current_segment['flags']
+        return self.current_segment['control_data']
+
+    @property
+    def cuelist_id(self):
+        if self.control_data is None: return None
+
+        return self.control_data.split(':')[0]
 
     @property
     def hide_led(self):
-        return '!' in self.flags
+        return '!' in self.control_data
 
     @property
     def segment_time_remaining(self):

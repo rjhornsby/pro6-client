@@ -1,12 +1,25 @@
 import time
 import datetime
-from . import I2C_LCD_driver
 from lib.observer import Subscriber
 import pro6
 import threading
+import logging
+import sys
+
+try:
+    from . import I2C_LCD_driver
+except ModuleNotFoundError:
+    logging.warning('Unable to load required I2C module(s), disabling LCD')
+
 
 class LCD(Subscriber):
     def __init__(self):
+        self._disabled = False
+
+        if 'pi.I2C_LCD_driver' not in sys.modules:
+            logging.warning('I2C driver not loaded, disabling LCD')
+            self._disabled = True
+            return
 
         self._display = I2C_LCD_driver.lcd()
         self._message_line = None
@@ -21,6 +34,8 @@ class LCD(Subscriber):
         self.clear()
 
     def notify(self, obj, param, value):
+        if self._disabled: return
+
         if param == 'ready':
             self._reset()
 
@@ -37,17 +52,19 @@ class LCD(Subscriber):
             return
 
         if self._segment_name is None or param == 'current_segment':
-            self._show_segment(clock.segment_name)
+            self._show_segment(clock.segment_name, clock.cuelist_id)
             self._segment_name = clock.segment_name
         elif param == 'video_duration_remaining':
             self._update_video_clocks(clock)
 
     def rtc_run(self):
+        if self._disabled: return
         self._t = threading.Thread(target=self._rtc_loop)
         self._t.start()
         self._t.join(2.0)
 
     def rtc_stop(self):
+        if self._disabled: return
         self.stopping = True
 
     def _rtc_loop(self):
@@ -87,18 +104,21 @@ class LCD(Subscriber):
         return updated
 
     def clear(self):
+        if self._disabled: return
         with self._t_lock:
 
             self._display.lcd_write(0x01)
             # Force the RTC loop to redraw the date
             self._curr_date = datetime.date(1980, 1, 1)
 
-    def display_message(self, message_str, lcd_line=4):
+    def display_message(self, message_str: str, lcd_line: int = 4) -> None:
+        if self._disabled: return
         self._message_line = lcd_line
         with self._t_lock:
             self._display.lcd_display_string(message_str, line=lcd_line, pos=0)
 
     def clear_message(self):
+        if self._disabled: return
         with self._t_lock:
             self._display.lcd_display_string(' ' * 20, line=self._message_line, pos=0)
 
@@ -108,10 +128,10 @@ class LCD(Subscriber):
             self._display.lcd_display_string("+%s" % str(clock.current_video_position), line=4, pos=0)
             self._display.lcd_display_string("-%s" % str(clock.video_duration_remaining), line=4, pos=12)
 
-    def _show_segment(self, name=None):
+    def _show_segment(self, name=None, cuelist_id=None):
         self.clear()
         with self._t_lock:
-            self._display.lcd_display_string("%s" % name, line=2)
+            self._display.lcd_display_string("%s/%s" % (name, cuelist_id), line=2)
 
     def _reset(self):
         self.clear()

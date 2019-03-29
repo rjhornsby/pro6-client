@@ -1,5 +1,3 @@
-# import threading
-import logging
 from lib.observer import Subscriber
 from lib.observer import Notifier
 import pro6
@@ -7,23 +5,27 @@ import pi
 
 
 class Client(Subscriber, Notifier):
-    def __init__(self, msg_queue):
+    def __init__(self, config, msg_queue):
+        self._config = config
         self._msg_queue = msg_queue
         self._message_handler = pro6.Handler(msg_queue)
         self._p6_clock = pro6.Clock()
 
         self.lcd = pi.LCD()
         self.led = pi.LED()
+        self.osc = pi.KonnectOSC(config['osc'])
 
         self.event = None
         self.connected = False
 
         self._p6_clock.subscribe(self.lcd)
         self._p6_clock.subscribe(self.led)
+        self._p6_clock.subscribe(self.osc)
         self.subscribe(self._p6_clock)
 
     def stop(self):
         self.lcd.rtc_stop()
+        self.lcd.clear()
 
     def notify(self, obj, param, value):
         if param == 'message_pending':

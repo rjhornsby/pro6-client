@@ -1,0 +1,10 @@
+---
+logging_level: info
+host_search:
+  - titan
+  - warrior
+osc:
+  disabled: false
+  list_id: 38
+  ip_addr: 192.168.1.88
+  port: 7001

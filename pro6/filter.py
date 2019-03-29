@@ -41,7 +41,7 @@ class Filter:
             slide['segment_markers'] = None
         else:
             decoded = Filter.decode_base64(slide['slideNotes'])
-            data = Filter.premiere_markers_to_data(decoded)
+            data = Filter.markers_to_data(decoded)
             slide['segment_markers'] = data
         del slide['slideNotes']
 
@@ -56,7 +56,7 @@ class Filter:
             return ''
 
     @staticmethod
-    def premiere_markers_to_data(markers):
+    def markers_to_data(markers):
         if not markers: return None
 
         # Premiere's format:
@@ -67,12 +67,12 @@ class Filter:
         data = OrderedDict()
         for line in markers.split("\n"):
             if not line or line.startswith('Marker Name'): continue
-            (marker_name, flags, in_point, out_point, _) = line.split("\t", 4)
+            (marker_name, control_data, in_point, out_point, _) = line.split("\t", 4)
             data[Filter.str_to_time(in_point.replace(';', ':'))] = {
                 'in': Filter.str_to_time(in_point.replace(';', ':')),
                 'out': Filter.str_to_time(out_point.replace(';', ':')),
                 'name': marker_name,
-                'flags': flags
+                'control_data': control_data
             }
         Filter.set_out_points(data)
         return data
