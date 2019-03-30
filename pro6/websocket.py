@@ -5,7 +5,7 @@ import threading
 import logging
 from pro6.message import Message
 from lib.observer import Notifier
-
+from time import sleep
 
 class WebSocket(Notifier):
     def __init__(self, password, service_type, host, msg_queue):
@@ -68,6 +68,7 @@ class WebSocket(Notifier):
         self._stopping = True
         if self._ws.is_active:
             self._ws.close()
+        sleep(1)  # give it a second to close the websocket
 
     def _loop(self):
         while not self._stopping:

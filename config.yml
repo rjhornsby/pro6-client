@@ -1,8 +1,10 @@
 ---
 logging_level: info
-host_search:
-  - titan
-  - warrior
+pro6:
+  password: control
+  host_search:
+    - titan
+    - warrior
 osc:
   disabled: false
   list_id: 38
