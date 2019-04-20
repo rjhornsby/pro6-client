@@ -3,7 +3,10 @@ from pro6.filter import Filter
 import time
 import logging
 
+
 class Message:
+
+    logger = logging.getLogger(__name__)
 
     class Kind(Enum):
         ACTION = 0

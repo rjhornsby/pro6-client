@@ -7,6 +7,7 @@ from pro6 import Message
 
 
 class Clock(Notifier, Subscriber):
+    logger = logging.getLogger(__name__)
 
     THROTTLE_THRESHOLD = 0.25
 
@@ -34,7 +35,7 @@ class Clock(Notifier, Subscriber):
         elif message.name == 'video_advance':
             self.update_timecode(message)
         else:
-            logging.warning("Unknown message name '%s'" % message.name)
+            self.logger.warning("Unknown message name '%s'" % message.name)
 
     def _timecode_updated(self):
 
@@ -48,7 +49,7 @@ class Clock(Notifier, Subscriber):
             pos = self.current_video_position
             if not (self.current_segment['in'] <= pos <= self.current_segment['out']):
                 self._find_current_segment()
-                logging.info("New segment: %s" % self.current_segment)
+                self.logger.info("New segment: %s" % self.current_segment)
 
     def _find_current_segment(self):
         pos = self.current_video_position
@@ -65,7 +66,7 @@ class Clock(Notifier, Subscriber):
     def new_slide(self, message):
         self.reset()
         if message['segment_markers'] is None:
-            logging.info('No segment data for slide')
+            self.logger.info('No segment data for slide')
             return
 
         self._segment_markers = message['segment_markers']
@@ -133,7 +134,7 @@ class Clock(Notifier, Subscriber):
         return self.current_segment['out'] - self.current_video_position
 
     def reset(self):
-        logging.info('Resetting timecode')
+        self.logger.info('Resetting timecode')
         self.ready = False
         self.current_segment = None
         self._segment_markers = None
@@ -143,7 +144,7 @@ class Clock(Notifier, Subscriber):
     def update_timecode(self, message):
         # Throttle
         if message.timestamp - self._last_update < Clock.THROTTLE_THRESHOLD:
-            logging.info('Throttling timecode updates')
+            self.logger.info('Throttling timecode updates')
             return
 
         self.video_duration_remaining = message['timecode']

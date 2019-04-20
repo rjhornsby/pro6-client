@@ -5,6 +5,7 @@ import logging
 
 
 class Filter:
+    logger = logging.getLogger(__name__)
 
     # Fix the garbage nonsense where the same message is sent
     # different ways depending on the endpoint.
@@ -52,7 +53,7 @@ class Filter:
             decoded_string = base64.b64decode(s).decode(encoding='utf-16')
             return decoded_string  # bytes to string
         except Exception as e:
-            logging.error("Unable to decode base64 string %s" % e)
+            Filter.logger.error("Unable to decode base64 string %s" % e)
             return ''
 
     @staticmethod

@@ -1,7 +1,10 @@
 import logging
 from pro6.message import Message
 
+
 class Handler:
+    logger = logging.getLogger(__name__)
+
     def __init__(self, manager_queue):
         self.manager_queue = manager_queue
 
@@ -10,7 +13,7 @@ class Handler:
         if callable(handler_method):
             handler_method(message)
         else:
-            logging.debug("No method to handle action %s" % message.name)
+            self.logger.debug("No method to handle action %s" % message.name)
 
     def _csn(self, message):
         event = Message(message_content={'event': 'slide_change', 'segment_markers': message['segment_markers']})
@@ -23,7 +26,7 @@ class Handler:
 
     # selected stage layout (p = pro...)
     def _psl(self, message):
-        logging.info('Got stage uid %s' % message['uid'])
+        self.logger.info('Got stage uid %s' % message['uid'])
 
     # field values for stage layout
     def _fv(self, message):
@@ -38,6 +41,6 @@ class Handler:
     @staticmethod
     def _authenticate(message):
         if not message['authenticated']:
-            logging.critical('Authentication failed for %s: %s' % (message.source, message.error))
+            Handler.logger.critical('Authentication failed for %s: %s' % (message.source, message.error))
             return False
         return True

@@ -9,15 +9,17 @@ import sys
 try:
     from . import I2C_LCD_driver
 except ModuleNotFoundError:
-    logging.warning('Unable to load required I2C module(s), disabling LCD')
+    pass
 
 
 class LCD(Subscriber):
+    logger = logging.getLogger(__name__)
+
     def __init__(self):
         self._disabled = False
 
         if 'pi.I2C_LCD_driver' not in sys.modules:
-            logging.warning('I2C driver not loaded, disabling LCD')
+            self.logger.warning('I2C driver not loaded, disabling LCD')
             self._disabled = True
             return
 

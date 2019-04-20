@@ -6,6 +6,7 @@ import logging
 
 
 class KonnectOSC(Subscriber):
+    logger = logging.getLogger(__name__)
 
     def __init__(self, config):
         self.disabled = config['disabled']
@@ -39,7 +40,7 @@ class KonnectOSC(Subscriber):
             logging.info('No cuelist_id, cowardly refusing to send OSC command')
             return
 
-        logging.info('Sending OSC cuelist_id ' + str(cuelist_id))
+        self.logger.info('Sending OSC cuelist_id ' + str(cuelist_id))
         msg = oscbuildparse.OSCMessage('/hog/playback/go/0', None, [str(cuelist_id)])
         osc_send(msg, "hog")
         osc_process()

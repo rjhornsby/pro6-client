@@ -10,11 +10,9 @@ from osc4py3.as_eventloop import *
 RTC_DISPLAY_ENABLE = True
 # TODO: Handle a reset condition - ie ProPresenter goes away
 
-logging.basicConfig(level=logging.getLevelName('INFO'))
 
 def load_config():
     try:
-        logging.debug('Reading config')
         with open('config.yml', 'r') as config_file:
             y_config = yaml.safe_load(config_file)
     except IOError as e:
@@ -26,7 +24,9 @@ def load_config():
 
 if __name__ == "__main__":
     config = load_config()
+
     logging.basicConfig(level=logging.getLevelName(config['logging_level'].upper()))
+    logging.info('Log level %s', logging.getLevelName(logging.getLogger().level))
     logging.info('Starting up')
 
     message_queue = queue.SimpleQueue()

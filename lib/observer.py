@@ -1,7 +1,7 @@
 class Subscriber:
     def notify(self, obj, param, value):
-        pass
-        # The subscribed/listening class should implement notify()
+        pass  # The subscribed/listening class should implement notify()
+
 
 class Notifier:
     def __setattr__(self, name, value):

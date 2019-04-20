@@ -9,23 +9,25 @@ try:
     import RPi.GPIO as GPIO
     import neopixel
 except ModuleNotFoundError:
-    logging.warning('Unable to load modules for LED support')
+    pass
 
 PIXEL_COUNT = 10
 
 
 class LED(Subscriber):
+    logger = logging.getLogger(__name__)
+
     def __init__(self):
 
         self._disabled = False
 
         if 'RPi' not in sys.modules:
-            logging.warning('RPi module not loaded, disabling LED')
+            self.logger.warning('RPi module not loaded, disabling LED')
             self._disabled = True
             return
 
         if 'neopixel' not in sys.modules:
-            logging.warning('neopixel module not loaded, disabling LED')
+            self.logger.warning('neopixel module not loaded, disabling LED')
             self._disabled = True
             return
 

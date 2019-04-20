@@ -7,7 +7,10 @@ from pro6.message import Message
 from lib.observer import Notifier
 from time import sleep
 
+
 class WebSocket(Notifier):
+    logger = logging.getLogger(__name__)
+
     def __init__(self, password, service_type, host, msg_queue):
         self.connected = False
         self._ws = None
@@ -75,7 +78,7 @@ class WebSocket(Notifier):
             for action in persist(self._ws, ping_rate=0):
                 try:
                     if action.name == "ready":
-                        logging.info("%s ready" % self._service_type)
+                        self.logger.info("%s ready" % self._service_type)
                         self.connected = True
                         self.authenticate()
                         self.stage_configuration()

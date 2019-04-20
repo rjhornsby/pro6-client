@@ -7,6 +7,8 @@ from time import sleep
 
 
 class Client(Subscriber, Notifier):
+    logger = logging.getLogger(__name__)
+
     def __init__(self, config, msg_queue):
         self._config = config
         self._msg_queue = msg_queue
@@ -39,7 +41,7 @@ class Client(Subscriber, Notifier):
         self.init_stage(remote_endpoint)
 
         while not self._p6_stage.connected:
-            logging.debug('Waiting for connection...')
+            self.logger.debug('Waiting for connection...')
             sleep(1)
 
         self.lcd.clear()
@@ -59,7 +61,7 @@ class Client(Subscriber, Notifier):
         if param == 'message_pending':
             self.process_messages()
         elif param == 'connected':
-            logging.info('Connected: %s', value)
+            self.logger.info('Connected: %s', value)
             self.connected = value
             if not self.connected: self._p6_stage.stop()
 
@@ -73,4 +75,4 @@ class Client(Subscriber, Notifier):
             elif incoming_message.kind is pro6.Message.Kind.ERROR:
                 self.event = incoming_message
             else:
-                print("Unhandled queue object: %s" % incoming_message)
+                self.logger.debug("Unhandled queue object: %s" % incoming_message)
