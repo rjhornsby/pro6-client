@@ -1,5 +1,4 @@
 import lomond
-from lomond.persist import persist
 import json
 import threading
 import logging
@@ -68,6 +67,7 @@ class WebSocket(Notifier):
         self._t.start()
 
     def stop(self):
+        self.logger.debug('Stopping thread')
         self._stopping = True
         if self._ws.is_active:
             self._ws.close()
@@ -75,19 +75,19 @@ class WebSocket(Notifier):
 
     def _loop(self):
         while not self._stopping:
-            for action in persist(self._ws, ping_rate=0):
+            for event in self._ws.connect(ping_rate=0):
                 try:
-                    if action.name == "ready":
+                    if event.name == "ready":
                         self.logger.info("%s ready" % self._service_type)
                         self.connected = True
                         self.authenticate()
                         self.stage_configuration()
-                    elif action.name == "disconnected":
+                    elif event.name == "disconnected":
                         self.connected = False
-                    elif action.name == "poll":
+                    elif event.name == "poll":
                         self._ws.send_ping(b'@')
-                    elif action.name == "text":
-                        message = Message(json.loads(action.text),  kind=Message.Kind.ACTION, source=self._service_type)
+                    elif event.name == "text":
+                        message = Message(json.loads(event.text),  kind=Message.Kind.ACTION, source=self._service_type)
 
                         if message['action'] == 'psl':
                             self._active_stage_uid = message['uid']
