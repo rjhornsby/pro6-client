@@ -1,12 +1,15 @@
 ---
-logging_level: info
+logging_level: debug
 pro6:
   password: control
   host_search:
     - titan
     - warrior
+    - Administrators-Mac-mini
+    - Administrators-Mac-mini-2
 osc:
-  disabled: false
+  disabled: true
   list_id: 38
-  ip_addr: 192.168.1.88
+#  mac_addr: 28:80:a2:06:46:d2
+  mac_addr: 00:16:76:9A:DC:CA
   port: 7001

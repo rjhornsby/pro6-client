@@ -36,6 +36,7 @@ class Handler:
         # directly from the websocket message queue
         for fv_item in message['ary']:
             if fv_item['acn'] != 'fv':  # for sanity
+                # print(fv_item)
                 self.manager_queue.put(Message(message_content=fv_item, kind=Message.Kind.ACTION, source='fv'))
 
     @staticmethod

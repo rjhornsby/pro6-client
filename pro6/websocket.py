@@ -35,6 +35,7 @@ class WebSocket(Notifier):
         self._ws.send_json(json_data)
 
     def authenticate(self):
+        self.logger.debug('Authenticating to Pro6 websocket')
         self.send(self._ws_params['auth_cmd'])
 
     def current_presentation(self):

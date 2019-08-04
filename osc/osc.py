@@ -3,21 +3,35 @@ import pro6
 from osc4py3.as_eventloop import *
 from osc4py3 import oscbuildparse
 import logging
+import osc
 
 
 class KonnectOSC(Subscriber):
+
     logger = logging.getLogger(__name__)
 
-    def __init__(self, config):
-        self.disabled = config['disabled']
+    def __init__(self, osc_config):
+        self.disabled = osc_config['disabled']
+
         if self.disabled: return
+
+        osc_server = self.discover_osc_server(osc_config['mac_addr'])
+        if osc_server is None:
+            self.logger.warning('Could not reach OSC server, disabling functionality')
+            self.disabled = True
+            return
+
         osc_startup()
-        osc_udp_client(config['ip_addr'], config['port'], "hog")
+        osc_udp_client(osc_server, osc_config['port'], "hog")
 
         self._cuelist_id = None
 
     def __del__(self):
         osc_terminate()
+
+    def discover_osc_server(self, mac_addr):
+        d = osc.OSCDiscovery(mac_addr)
+        return d.discover()
 
     def notify(self, obj, param, value):
         if type(obj) is pro6.clock.Clock:
@@ -40,7 +54,7 @@ class KonnectOSC(Subscriber):
             logging.info('No cuelist_id, cowardly refusing to send OSC command')
             return
 
-        self.logger.info('Sending OSC cuelist_id ' + str(cuelist_id))
+        self.logger.debug('Sending OSC cuelist_id ' + str(cuelist_id))
         msg = oscbuildparse.OSCMessage('/hog/playback/go/0', None, [str(cuelist_id)])
         osc_send(msg, "hog")
         osc_process()

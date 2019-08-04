@@ -2,6 +2,7 @@ from lib.observer import Subscriber
 from lib.observer import Notifier
 import pro6
 import pi
+import osc
 import logging
 from time import sleep
 
@@ -15,10 +16,11 @@ class Client(Subscriber, Notifier):
         self._message_handler = pro6.Handler(msg_queue)
         self._p6_clock = pro6.Clock()
         self._p6_stage = None
+        self._p6_remote = None
 
         self.lcd = pi.LCD()
         self.led = pi.LED()
-        self.osc = pi.KonnectOSC(config['osc'])
+        self.osc = osc.KonnectOSC(config['osc'])
 
         self.event = None
         self.connected = False
@@ -31,15 +33,16 @@ class Client(Subscriber, Notifier):
     def connect_to_pro6(self):
         host_list = map(lambda host: host + '.local.', self._config['pro6']['host_search'])
         self.lcd.clear()
-        self.lcd.display_message("Searching for Pro6", lcd_line=1)
+        self.lcd.display_message("Searching for Pro6", lcd_line=2)
         remote_endpoint = pro6.Discovery("_pro6stagedsply", host_list).discover()
 
-        self.lcd.display_message("Connecting to", lcd_line=1)
-        self.lcd.display_message(remote_endpoint, lcd_line=2)
+        self.lcd.display_message("Connecting to", lcd_line=2)
+        self.lcd.display_message(remote_endpoint, lcd_line=3)
         self.lcd.clear()
 
         self.init_stage(remote_endpoint)
 
+        self.logger.debug('Connecting to stage...')
         while not self._p6_stage.connected:
             self.logger.debug('Waiting for connection...')
             sleep(1)

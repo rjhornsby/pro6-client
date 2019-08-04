@@ -48,7 +48,7 @@ class Filter:
 
     @staticmethod
     def decode_base64(s):
-        # TODO: Make this check to ensure 's' a base64 encoded string
+        # TODO: Make this check to ensure 's' is a base64 encoded string
         try:
             decoded_string = base64.b64decode(s).decode(encoding='utf-16')
             return decoded_string  # bytes to string
@@ -105,5 +105,7 @@ class Filter:
 
     @staticmethod
     def str_to_time(str_time):
+        if str_time == '--:--:--':
+            return datetime.timedelta(hours=0, minutes=0, seconds=0)
         h, m, s, *trash = str_time.split(':', 3)
         return datetime.timedelta(hours=int(h), minutes=int(m), seconds=int(s))

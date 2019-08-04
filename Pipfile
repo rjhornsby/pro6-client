@@ -7,9 +7,12 @@ name = "pypi"
 lomond = "*"
 zeroconf = "*"
 smbus-cffi = "*"
-neopixel = "*"
+adafruit-circuitpython-neopixel = "*"
 osc4py3 = "*"
 pyyaml = "*"
+scapy = "*"
+netifaces = "*"
+netaddr = "*"
 
 [dev-packages]
 
