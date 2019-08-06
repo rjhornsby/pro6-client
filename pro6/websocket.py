@@ -1,4 +1,5 @@
 import lomond
+from lomond import events
 import json
 import threading
 import logging
@@ -16,16 +17,15 @@ class WebSocket(Notifier):
         self._host = host
         self._password = password
         self._service_type = service_type
-        self._ws_params = self.get_ws_params()
-
-        self._ws = lomond.WebSocket("ws://%s/%s" % (self._host, self._ws_params['url_path']))
-        self.msg_queue = msg_queue
-        self.message_pending = False
+        self._ws = lomond.WebSocket("ws://%s/%s" % (self._host, self._ws_params()['url_path']))
         self._stopping = False
         self._active_stage_uid = None
         self._t = None
 
-    def get_ws_params(self):
+        self.msg_queue = msg_queue
+        self.message_pending = False
+
+    def _ws_params(self):
         return {
             'url_path': 'stagedisplay',
             'auth_cmd': {'acn': 'ath', 'ptl': '610', 'pwd': self._password}
@@ -36,7 +36,7 @@ class WebSocket(Notifier):
 
     def authenticate(self):
         self.logger.debug('Authenticating to Pro6 websocket')
-        self.send(self._ws_params['auth_cmd'])
+        self.send(self._ws_params()['auth_cmd'])
 
     def current_presentation(self):
         self.send({
@@ -63,6 +63,7 @@ class WebSocket(Notifier):
         self._active_stage_uid = None
 
     def run(self):
+        self.logger.debug('Starting thread')
         self._t = threading.Thread(target=self._loop, name=self._service_type)
         self._t.daemon = True
         self._t.start()
@@ -72,22 +73,27 @@ class WebSocket(Notifier):
         self._stopping = True
         if self._ws.is_active:
             self._ws.close()
-        sleep(1)  # give it a second to close the websocket
+            self.logger.debug('Cooling down')
+            sleep(3)
 
     def _loop(self):
         while not self._stopping:
-            for event in self._ws.connect(ping_rate=0):
+            for event in self._ws.connect(ping_rate=0, close_timeout=5):
+                self.logger.debug("Handling event: %s" % type(event))
                 try:
-                    if event.name == "ready":
+                    if isinstance(event, events.Ready):
                         self.logger.info("%s ready" % self._service_type)
                         self.connected = True
                         self.authenticate()
                         self.stage_configuration()
-                    elif event.name == "disconnected":
+                    elif isinstance(event, events.Disconnected):
                         self.connected = False
-                    elif event.name == "poll":
+                    elif isinstance(event, events.ConnectFail):
+                        self.logger.info("Connecting to Pro6 failed")
+                        sleep(3)
+                    elif isinstance(event, events.Poll):
                         self._ws.send_ping(b'@')
-                    elif event.name == "text":
+                    elif isinstance(event, events.Text):
                         message = Message(json.loads(event.text),  kind=Message.Kind.ACTION, source=self._service_type)
 
                         if message['action'] == 'psl':

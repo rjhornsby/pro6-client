@@ -20,11 +20,13 @@ class Client(Subscriber, Notifier):
 
         self.lcd = pi.LCD()
         self.led = pi.LED()
-        self.osc = osc.KonnectOSC(config['osc'])
+        self.osc = osc.HogOSC(config['osc'])
 
         self.event = None
         self.connected = False
+        self.create_subscriptions()
 
+    def create_subscriptions(self):
         self._p6_clock.subscribe(self.lcd)
         self._p6_clock.subscribe(self.led)
         self._p6_clock.subscribe(self.osc)
@@ -32,26 +34,32 @@ class Client(Subscriber, Notifier):
 
     def connect_to_pro6(self):
         host_list = map(lambda host: host + '.local.', self._config['pro6']['host_search'])
-        self.lcd.clear()
-        self.lcd.display_message("Searching for Pro6", lcd_line=2)
+        # self.lcd.clear()
+        # self.lcd.display_message("Searching for Pro6", lcd_line=2)
         remote_endpoint = pro6.Discovery("_pro6stagedsply", host_list).discover()
 
-        self.lcd.display_message("Connecting to", lcd_line=2)
-        self.lcd.display_message(remote_endpoint, lcd_line=3)
-        self.lcd.clear()
+        # self.lcd.display_message("Connecting to", lcd_line=2)
+        # self.lcd.display_message(remote_endpoint, lcd_line=3)
+        # self.lcd.clear()
 
         self.init_stage(remote_endpoint)
 
-        self.logger.debug('Connecting to stage...')
+        self.logger.debug('Connecting to stage endpoint...')
         while not self._p6_stage.connected:
             self.logger.debug('Waiting for connection...')
             sleep(1)
 
-        self.lcd.clear()
-        self.lcd.rtc_run()
+        # self.lcd.clear()
+        # self.lcd.rtc_run()
 
     def init_stage(self, remote_endpoint):
-        self._p6_stage = pro6.WebSocket(self._config['pro6']['password'], '_pro6stagedsply', remote_endpoint, self._msg_queue)
+        self._p6_stage = pro6.WebSocket(
+            self._config['pro6']['password'],
+            '_pro6stagedsply',
+            remote_endpoint,
+            self._msg_queue
+        )
+
         self._p6_stage.subscribe(self)
         self._p6_stage.run()
 
@@ -61,6 +69,7 @@ class Client(Subscriber, Notifier):
         self.lcd.clear()
 
     def notify(self, obj, param, value):
+        self.logger.debug("Got notification %s:%s" % (param, value))
         if param == 'message_pending':
             self.process_messages()
         elif param == 'connected':
