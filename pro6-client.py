@@ -31,12 +31,11 @@ if __name__ == "__main__":
     message_queue = queue.SimpleQueue()
 
     p6_client = pro6.Client(config, message_queue)
+    p6_client.run()
 
     while True:
         try:
-            if not p6_client.connected: p6_client.connect_to_pro6()
-            sleep(1)
-
+            sleep(2)
         except KeyboardInterrupt:
             logging.info("shutting down")
             p6_client.stop()

@@ -1,4 +1,3 @@
-# Keep track of the current Pro6 state
 import logging
 import time
 from lib.observer import Notifier

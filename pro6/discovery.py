@@ -36,7 +36,7 @@ class Discovery:
 
         while not self.pro6_discovered:
             self.logger.info("Looking for %s..." % self.service_type)
-            sleep(3.0)
+            sleep(3)
 
         zeroconf.close()
         return self.endpoint

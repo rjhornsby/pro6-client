@@ -41,9 +41,9 @@ class LCD(Subscriber):
         if param == 'ready':
             self._reset()
 
-            if value is False:
-                self.display_message('Waiting for', 3)
-                self.display_message('ProPresenter', 4)
+            # if value is False:
+            #     self.display_message('Waiting for', 3)
+            #     self.display_message('ProPresenter', 4)
 
         if type(obj) is pro6.clock.Clock:
             clock = obj
@@ -74,18 +74,22 @@ class LCD(Subscriber):
             try:
                 if self._message_line is not 1:
                     with self._t_lock:
-                        if self.date_as_string():
+                        if self.refresh_date():
                             self._display.lcd_display_string(self._curr_date_str, 1, 0)
                         self._display.lcd_display_string(time.strftime("%H:%M:%S"), 1, 12)
                     time.sleep(1)
             except KeyboardInterrupt:
                 self.rtc_stop()
 
-    def date_as_string(self):
+    def refresh_date(self):
 
-        updated = False
-        if datetime.date.today() > self._curr_date:
-            updated = True
+        date_changed = False
+        if self._curr_date is None:
+            date_changed = True
+        elif datetime.date.today() > self._curr_date:
+            date_changed = True
+
+        if date_changed:
             self._curr_date = datetime.date.today()
             # python uses a zero-based week number, calendars generally use one-based.
             week = int(time.strftime('%U')) + 1
@@ -103,7 +107,7 @@ class LCD(Subscriber):
 
             self._curr_date_str = time.strftime("Wk{} {}%d{}").format(week_str, day, month)
 
-        return updated
+        return date_changed
 
     def clear(self):
         if self._disabled: return

@@ -5,11 +5,14 @@ import threading
 import logging
 from pro6.message import Message
 from lib.observer import Notifier
+from lib.observer import Subscriber
 from time import sleep
 
 
-class WebSocket(Notifier):
+class WebSocket(Notifier, Subscriber):
     logger = logging.getLogger(__name__)
+
+    SOCKET_CLOSE_TIMEOUT = 2
 
     def __init__(self, password, service_type, host, msg_queue):
         self.connected = False
@@ -24,6 +27,10 @@ class WebSocket(Notifier):
 
         self.msg_queue = msg_queue
         self.message_pending = False
+
+    def notify(self, obj, param, value):
+        if param == 'stopping' and value is True:
+            self.stop()
 
     def _ws_params(self):
         return {
@@ -73,13 +80,13 @@ class WebSocket(Notifier):
         self._stopping = True
         if self._ws.is_active:
             self._ws.close()
-            self.logger.debug('Cooling down')
-            sleep(3)
+            self.logger.debug('Giving socket time to close')
+            sleep(self.SOCKET_CLOSE_TIMEOUT)
 
     def _loop(self):
         while not self._stopping:
-            for event in self._ws.connect(ping_rate=0, close_timeout=5):
-                self.logger.debug("Handling event: %s" % type(event))
+            self.logger.debug("Processing events")
+            for event in self._ws.connect(ping_rate=0, close_timeout=self.SOCKET_CLOSE_TIMEOUT):
                 try:
                     if isinstance(event, events.Ready):
                         self.logger.info("%s ready" % self._service_type)
@@ -92,7 +99,8 @@ class WebSocket(Notifier):
                         self.logger.info("Connecting to Pro6 failed")
                         sleep(3)
                     elif isinstance(event, events.Poll):
-                        self._ws.send_ping(b'@')
+                        if not self._ws.is_closing:
+                            self._ws.send_ping(b'@')
                     elif isinstance(event, events.Text):
                         message = Message(json.loads(event.text),  kind=Message.Kind.ACTION, source=self._service_type)
 
