@@ -1,5 +1,7 @@
 ---
 logging_level: debug
+lan:
+  iface: eth0
 pro6:
   password: control
   host_search:

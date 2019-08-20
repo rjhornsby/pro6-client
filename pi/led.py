@@ -1,9 +1,8 @@
-import logging
 import board
-from lib.observer import Subscriber
 import pro6
 import datetime
 import sys
+from pro6.actor import Actor
 
 try:
     import RPi.GPIO as GPIO
@@ -14,29 +13,33 @@ except ModuleNotFoundError:
 PIXEL_COUNT = 10
 
 
-class LED(Subscriber):
-    logger = logging.getLogger(__name__)
+class LED(Actor):
 
     def __init__(self):
+        super().__init__(None)
 
-        self._disabled = False
+        self.status = Actor.StatusEnum.STANDBY
 
         if 'RPi' not in sys.modules:
             self.logger.warning('RPi module not loaded, disabling LED')
-            self._disabled = True
+            self.disable()
             return
 
         if 'neopixel' not in sys.modules:
             self.logger.warning('neopixel module not loaded, disabling LED')
-            self._disabled = True
+            self.disable()
             return
 
         # Initialize the library (must be called once before other functions).
         self.pixels = neopixel.NeoPixel(board.D18, PIXEL_COUNT)
 
-    def notify(self, obj, param, value):
-        if self._disabled: return
+    @property
+    def watching(self):
+        return [
+            pro6.Roles.CLOCK
+        ]
 
+    def recv_notice(self, obj, role, param, value):
         if type(obj) is pro6.clock.Clock:
             clock = obj
         else:
@@ -57,17 +60,17 @@ class LED(Subscriber):
                 self.clear()
 
     def clear(self):
-        if self._disabled: return
+        if not self.enabled: return
         self.pixels.fill((0, 0, 0))
         self.pixels.show()
 
     def green(self):
-        if self._disabled: return
+        if not self.enabled: return
         self.pixels.fill((0, 255, 0))
         self.pixels.show()
 
     def yellow(self, time_remaining):
-        if self._disabled: return
+        if not self.enabled: return
         count = int(time_remaining.total_seconds())
         self.clear()
         for i in range(count):
@@ -76,7 +79,7 @@ class LED(Subscriber):
         self.pixels.show()
 
     def red(self, time_remaining):
-        if self._disabled: return
+        if not self.enabled: return
         count = int(time_remaining.total_seconds())
         self.clear()
         for i in range(count):

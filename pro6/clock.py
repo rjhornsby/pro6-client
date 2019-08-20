@@ -1,16 +1,14 @@
-import logging
 import time
-from lib.observer import Notifier
-from lib.observer import Subscriber
 from pro6 import Message
+from .actor import Actor
 
 
-class Clock(Notifier, Subscriber):
-    logger = logging.getLogger(__name__)
+class Clock(Actor):
 
     THROTTLE_THRESHOLD = 0.25
 
     def __init__(self):
+        super().__init__(None)
         self.ready = False
         self.video_duration_remaining = None  # Will come from WS vid pro6
         self.current_segment = None
@@ -20,7 +18,7 @@ class Clock(Notifier, Subscriber):
         self._last_update = time.monotonic()
         self.ws_connected = False
 
-    def notify(self, obj, param, value):
+    def recv_notice(self, obj, param, value):
         if type(value) is Message:
             self._process_message(value)
         elif param == 'connected':

@@ -1,39 +1,36 @@
-from lib.observer import Subscriber
 import pro6
+from pro6.actor import Actor
 from osc4py3.as_eventloop import *
 from osc4py3 import oscbuildparse
-import logging
-import osc
+from .discovery import Discovery
 
 
-class KonnectOSC(Subscriber):
+class HogOSC(Actor):
 
-    logger = logging.getLogger(__name__)
+    def __init__(self, config):
+        super().__init__(config)
+        if not self.enabled: return
 
-    def __init__(self, osc_config):
-        self.disabled = osc_config['disabled']
+        self.mac_addr = config['mac_addr']
+        self.endpoint = self.discover()
 
-        if self.disabled: return
-
-        osc_server = self.discover_osc_server(osc_config['mac_addr'])
-        if osc_server is None:
+        if self.endpoint is None:
             self.logger.warning('Could not reach OSC server, disabling functionality')
-            self.disabled = True
+            self.disable()
             return
 
         osc_startup()
-        osc_udp_client(osc_server, osc_config['port'], "hog")
+        osc_udp_client(self.endpoint, config['port'], "hog")
 
         self._cuelist_id = None
 
     def __del__(self):
         osc_terminate()
 
-    def discover_osc_server(self, mac_addr):
-        d = osc.OSCDiscovery(mac_addr)
-        return d.discover()
+    def discover(self):
+        return Discovery(self.mac_addr).discover()
 
-    def notify(self, obj, param, value):
+    def recv_notice(self, obj, role, param, value):
         if type(obj) is pro6.clock.Clock:
             clock = obj
         else:
@@ -49,9 +46,9 @@ class KonnectOSC(Subscriber):
             self._cuelist_id = clock.cuelist_id
 
     def _send_osc_command(self, cuelist_id):
-        if self.disabled: return
+        if not self.enabled: return
         if cuelist_id is None or cuelist_id is '':
-            logging.info('No cuelist_id, cowardly refusing to send OSC command')
+            self.logger.info('No cuelist_id, cowardly refusing to send OSC command')
             return
 
         self.logger.debug('Sending OSC cuelist_id ' + str(cuelist_id))

@@ -1,2 +1,1 @@
-from osc.discovery import OSCDiscovery
-from osc.osc import KonnectOSC
+from .osc import HogOSC

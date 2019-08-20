@@ -4,23 +4,23 @@ import netaddr
 from scapy.all import srp, Ether, ARP
 
 
-class OSCDiscovery:
+class Discovery:
     logger = logging.getLogger(__name__)
 
     def __init__(self, mac_addr, iface_name=None):
-        self.iface_name = self.detect_iface_name()
-        self.mac_addr = mac_addr
-        self.disabled = False
+        self.iface_name = None
 
-    def detect_iface_name(self):
+        self.mac_addr = mac_addr
+        self.detect_iface_name(iface_name)
+
+    def detect_iface_name(self, default=None):
         iface_opts = ['en4', 'eth0', 'en0', 'wlan0']
         for iface in iface_opts:
             if iface in ni.interfaces():
                 self.logger.debug('Using interface %s', iface)
-                return iface
+                self.iface_name = iface
 
-        self.logger.error('No suitable network interface available, OSC discovery failed')
-        self.disabled = True
+        self.logger.warning('No suitable network interface available')
 
     def network(self):
         addrs = ni.ifaddresses(self.iface_name)
@@ -33,7 +33,10 @@ class OSCDiscovery:
         return str(net.network) + '/' + str(net.prefixlen)
 
     def discover(self):
-        if self.disabled: return
+        if self.iface_name is None:
+            self.logger.error('OSC discovery failed: no interface')
+            return None
+
         self.logger.debug('Querying ' + self.local_network() + ' for OSC server @ ' + self.mac_addr)
         answered, unanswered = srp(Ether(dst=self.mac_addr)/ARP(pdst=self.local_network()), timeout=1, verbose=True)
         if len(answered) > 0:
@@ -41,6 +44,6 @@ class OSCDiscovery:
                 self.logger.debug('Found ' + rcv.sprintf(r"%Ether.src% @ %ARP.psrc%"))
                 return rcv.sprintf(r"%ARP.psrc%")
         elif len(unanswered) > 0:
-            self.disabled = True
             self.logger.warning(unanswered[0].getlayer(ARP).pdst, " cannot be reached")
+            return None
 

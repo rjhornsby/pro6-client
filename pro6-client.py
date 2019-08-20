@@ -10,6 +10,7 @@ from osc4py3.as_eventloop import *
 RTC_DISPLAY_ENABLE = True
 # TODO: Handle a reset condition - ie ProPresenter goes away
 
+
 def load_config():
     try:
         with open('config.yml', 'r') as config_file:
@@ -24,13 +25,15 @@ def load_config():
 if __name__ == "__main__":
     config = load_config()
 
-    logging.basicConfig(level=logging.getLevelName(config['logging_level'].upper()))
+    fmt = "%(levelname)-8.8s [%(name)s:%(module)s:%(funcName)s] %(message)s"
+    logging.basicConfig(format=fmt, level=logging.getLevelName(config['logging_level'].upper()))
+
     logging.info('Log level %s', logging.getLevelName(logging.getLogger().level))
     logging.info('Starting up')
 
     message_queue = queue.SimpleQueue()
 
-    p6_client = pro6.Client(config, message_queue)
+    p6_client = pro6.Director(config, message_queue)
     p6_client.run()
 
     while True:

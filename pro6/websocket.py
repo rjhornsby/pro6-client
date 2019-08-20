@@ -2,33 +2,45 @@ import lomond
 from lomond import events
 import json
 import threading
-import logging
-from pro6.message import Message
-from lib.observer import Notifier
-from lib.observer import Subscriber
 from time import sleep
+from .message import Message
+from .actor import Actor
+from .discovery import Discovery
 
 
-class WebSocket(Notifier, Subscriber):
-    logger = logging.getLogger(__name__)
-
+class WebSocket(Actor):
     SOCKET_CLOSE_TIMEOUT = 2
 
-    def __init__(self, password, service_type, host, msg_queue):
-        self.connected = False
+    def __init__(self, config, service_type, msg_queue):
+        super().__init__(config)
+        self.status = Actor.StatusEnum.OFFLINE
         self._ws = None
-        self._host = host
-        self._password = password
+        self._password = self.config['password']
         self._service_type = service_type
-        self._ws = lomond.WebSocket("ws://%s/%s" % (self._host, self._ws_params()['url_path']))
+        self._ws = None
         self._stopping = False
         self._active_stage_uid = None
         self._t = None
-
-        self.msg_queue = msg_queue
+        #
+        # message_pending is watched by director.
+        # when the value is updated, the notification
+        # causes the director to process the msg_queue.
         self.message_pending = False
+        self._msg_queue = msg_queue
 
-    def notify(self, obj, param, value):
+    def discover(self):
+        host_list = map(lambda host: host + '.local.', self.config['host_search'])
+        remote_endpoint = Discovery(self._service_type, host_list).discover()
+        if remote_endpoint:
+            self.discovered = True
+            self.endpoint = remote_endpoint
+        else:
+            raise Exception("Unable to discover endpoint")
+
+    def connect(self):
+        self._ws = lomond.WebSocket("ws://%s/%s" % (self.endpoint, self._ws_params()['url_path']))
+
+    def recv_notice(self, obj, param, value):
         if param == 'stopping' and value is True:
             self.stop()
 
@@ -70,6 +82,7 @@ class WebSocket(Notifier, Subscriber):
         self._active_stage_uid = None
 
     def run(self):
+        self._stopping = False
         self.logger.debug('Starting thread')
         self._t = threading.Thread(target=self._loop, name=self._service_type)
         self._t.daemon = True
@@ -90,11 +103,11 @@ class WebSocket(Notifier, Subscriber):
                 try:
                     if isinstance(event, events.Ready):
                         self.logger.info("%s ready" % self._service_type)
-                        self.connected = True
+                        self.status = Actor.StatusEnum.ACTIVE
                         self.authenticate()
                         self.stage_configuration()
                     elif isinstance(event, events.Disconnected):
-                        self.connected = False
+                        self.status = Actor.StatusEnum.OFFLINE
                     elif isinstance(event, events.ConnectFail):
                         self.logger.info("Connecting to Pro6 failed")
                         sleep(3)
@@ -108,7 +121,7 @@ class WebSocket(Notifier, Subscriber):
                             self._active_stage_uid = message['uid']
                             self.stage_configuration()
 
-                        self.msg_queue.put(message)
+                        self._msg_queue.put(message)
                         self.message_pending = True
                 except KeyboardInterrupt:
                     self.stop()
