@@ -2,6 +2,7 @@ import base64
 import datetime
 from collections import OrderedDict
 import logging
+import json
 
 
 class Filter:
@@ -61,8 +62,8 @@ class Filter:
         if not markers: return None
 
         # Premiere's format:
-        # Marker Name	Description	In	Out	Duration	Marker Type
-        # countdown		00;00;00;00	00;00;00;00	00;00;00;00	Comment
+        # Marker Name	    Description	In	Out	Duration	Marker Type
+        # countdown		control_data    00;00;00;00	00;00;00;00	00;00;00;00	Comment
         # Note the two tabs after the name
 
         data = OrderedDict()
@@ -73,7 +74,7 @@ class Filter:
                 'in': Filter.str_to_time(in_point.replace(';', ':')),
                 'out': Filter.str_to_time(out_point.replace(';', ':')),
                 'name': marker_name,
-                'control_data': control_data
+                'control_data': Filter.from_json(control_data)
             }
         Filter.set_out_points(data)
         return data
@@ -88,24 +89,32 @@ class Filter:
                 marker['out'] = list(data.values())[idx+1]['in']
 
     @staticmethod
-    def note_text_to_data(notes):
-        if notes == '':
+    def from_json(json_str):
+        try:
+            return json.JSONDecoder().decode(json_str)
+        except json.JSONDecodeError as e:
+            Filter.logger.error('Cannot process control data: %s', e.msg)
             return None
 
-        data = OrderedDict()
-        for line in notes.split("\n"):
-            if not line == '':  # ignore blank lines
-                (in_point, out_point, clip_name) = line.split("\t")
-                data[Filter.str_to_time(in_point.replace(';', ':'))] = {
-                    'in': Filter.str_to_time(in_point.replace(';', ':')),
-                    'out': Filter.str_to_time(out_point.replace(';', ':')),
-                    'name': clip_name
-                }
-        return data
+    # @staticmethod
+    # def note_text_to_data(notes):
+    #     if notes == '':
+    #         return None
+    #
+    #     data = OrderedDict()
+    #     for line in notes.split("\n"):
+    #         if not line == '':  # ignore blank lines
+    #             (in_point, out_point, clip_name) = line.split("\t")
+    #             data[Filter.str_to_time(in_point.replace(';', ':'))] = {
+    #                 'in': Filter.str_to_time(in_point.replace(';', ':')),
+    #                 'out': Filter.str_to_time(out_point.replace(';', ':')),
+    #                 'name': clip_name
+    #             }
+    #     return data
 
     @staticmethod
     def str_to_time(str_time):
         if str_time == '--:--:--':
             return datetime.timedelta(hours=0, minutes=0, seconds=0)
-        h, m, s, *trash = str_time.split(':', 3)
+        h, m, s, *_ = str_time.split(':', 3)
         return datetime.timedelta(hours=int(h), minutes=int(m), seconds=int(s))

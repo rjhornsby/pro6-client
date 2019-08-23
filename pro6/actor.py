@@ -53,7 +53,7 @@ class Actor(Subscriber, Notifier):
     @status.setter
     def status(self, new_status):
         if self._status is not new_status:
-            self.logger.debug('Setting new status %s' % new_status)
+            self.logger.debug('Setting new status %s (was: %s)' % (new_status, self._status))
             self._status = new_status
 
     @property

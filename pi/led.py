@@ -1,4 +1,3 @@
-import board
 import pro6
 import datetime
 import sys
@@ -7,6 +6,7 @@ from pro6.actor import Actor
 try:
     import RPi.GPIO as GPIO
     import neopixel
+    import board
 except ModuleNotFoundError:
     pass
 
@@ -19,16 +19,12 @@ class LED(Actor):
         super().__init__(None)
 
         self.status = Actor.StatusEnum.STANDBY
-
-        if 'RPi' not in sys.modules:
-            self.logger.warning('RPi module not loaded, disabling LED')
-            self.disable()
-            return
-
-        if 'neopixel' not in sys.modules:
-            self.logger.warning('neopixel module not loaded, disabling LED')
-            self.disable()
-            return
+        required_modules = ['RPi', 'neopixel', 'board']
+        for mod in required_modules:
+            if mod not in sys.modules:
+                self.logger.warning('%s module not loaded, disabling LED', mod)
+                self.disable()
+                return
 
         # Initialize the library (must be called once before other functions).
         self.pixels = neopixel.NeoPixel(board.D18, PIXEL_COUNT)
@@ -40,6 +36,8 @@ class LED(Actor):
         ]
 
     def recv_notice(self, obj, role, param, value):
+        if not self.enabled: return
+
         if type(obj) is pro6.clock.Clock:
             clock = obj
         else:

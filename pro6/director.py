@@ -20,6 +20,7 @@ class Roles(Enum):
     OSC         = auto()
     # LAN_LINK    = auto()  # WIP
 
+
 class Director(Actor):
 
     WAIT_RETRIES = 10
@@ -47,7 +48,7 @@ class Director(Actor):
             Roles.DIRECTOR:     self,
             Roles.CLOCK:        pro6.Clock(),
             Roles.STAGE_DSP:    WebSocket(self.config['pro6'], '_pro6stagedsply', self._msg_queue),
-            # CastMembers.REMOTE:     None,  # Not used.
+            # CastMembers.REMOTE:     None,  # Reserved
             Roles.LCD_SCREEN:   pi.LCDScreen(None),
             Roles.LED:          pi.LED(),
             Roles.OSC:          osc.HogOSC(config['osc']),
@@ -71,6 +72,7 @@ class Director(Actor):
         ]
 
     def connect_to_pro6(self):
+        self.update_status()
         self.logger.debug('Connecting to pro6')
 
         self._actors[Roles.STAGE_DSP].discover()
@@ -91,11 +93,9 @@ class Director(Actor):
                 sleep(10)
                 return
 
-        self.status = Actor.StatusEnum.STANDBY
-
     def _loop(self):
         while not self.stopping:
-            if self.status == Actor.StatusEnum.OFFLINE:
+            if self.status is Actor.StatusEnum.OFFLINE:
                 self.connect_to_pro6()
             # self.check_network()
             sleep(1)
@@ -113,28 +113,28 @@ class Director(Actor):
         self.stopping = True
 
     def recv_notice(self, obj, role, param, value):
-        self.logger.debug('Notified: %s / %s / %s' % (obj, param, value))
-        if role is Roles.CLOCK:
-            if param == 'ready':
-                if value:
-                    self.status = Actor.StatusEnum.ACTIVE
-                else:
-                    self.status = Actor.StatusEnum.STANDBY
-        elif role is Roles.STAGE_DSP:
+        if role is Roles.STAGE_DSP:
             if param == 'status':
                 self.logger.debug("New stage display status: %s" % value)
                 if self._actors[Roles.STAGE_DSP].status is Actor.StatusEnum.OFFLINE:
                     self._actors[Roles.STAGE_DSP].stop()
-                    self.status = Actor.StatusEnum.OFFLINE
+                self.update_status()
 
         if param == 'message_pending':
             self.process_messages()
         elif param == 'connected':
             self.logger.info('Connected: %s', value)
-            if value:
-                self.status = Actor.StatusEnum.STANDBY
-            else:
-                self.status = Actor.StatusEnum.OFFLINE
+            self.update_status()
+
+    def update_status(self):
+        if self._actors[Roles.STAGE_DSP].status is Actor.StatusEnum.OFFLINE:
+            self.status = Actor.StatusEnum.OFFLINE
+            return
+
+        if self._actors[Roles.CLOCK].status is Actor.StatusEnum.ACTIVE:
+            self.status = Actor.StatusEnum.ACTIVE
+        else:
+            self.status = Actor.StatusEnum.STANDBY
 
     def process_messages(self):
         while not self._msg_queue.empty():

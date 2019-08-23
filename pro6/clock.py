@@ -1,30 +1,31 @@
 import time
 from pro6 import Message
 from .actor import Actor
+from .director import Roles
 
 
 class Clock(Actor):
 
-    THROTTLE_THRESHOLD = 0.25
+    THROTTLE_THRESHOLD = 1.0
 
     def __init__(self):
         super().__init__(None)
-        self.ready = False
         self.video_duration_remaining = None  # Will come from WS vid pro6
         self.current_segment = None
 
-        self._video_total_duration = None
+        self._video_duration_total = None
         self._segment_markers = None
         self._last_update = time.monotonic()
-        self.ws_connected = False
 
-    def recv_notice(self, obj, param, value):
+    @property
+    def watching(self):
+        return [
+            Roles.DIRECTOR
+        ]
+
+    def recv_notice(self, obj, role, param, value):
         if type(value) is Message:
             self._process_message(value)
-        elif param == 'connected':
-            if self.ws_connected != value:
-                self.ws_connected = value
-            self._check_ready()
 
     def _process_message(self, message):
         if message.name == 'slide_change':
@@ -35,20 +36,19 @@ class Clock(Actor):
             self.logger.warning("Unknown message name '%s'" % message.name)
 
     def _timecode_updated(self):
-
         if self._segment_markers is None:
             return
 
         if self.current_segment is None:
-            self._find_current_segment()
+            self._update_current_segment()
         else:
             # Update segment information
             pos = self.current_video_position
             if not (self.current_segment['in'] <= pos <= self.current_segment['out']):
-                self._find_current_segment()
+                self._update_current_segment()
                 self.logger.info("New segment: %s" % self.current_segment)
 
-    def _find_current_segment(self):
+    def _update_current_segment(self):
         pos = self.current_video_position
         for segment in self._segment_markers.values():
             if segment['in'] <= pos <= segment['out']:
@@ -58,7 +58,7 @@ class Clock(Actor):
             # last
             self.current_segment = self._segment_markers[next(reversed(self._segment_markers))]
 
-        self._check_ready()
+        self._update_status()
 
     def new_slide(self, message):
         self.reset()
@@ -68,40 +68,37 @@ class Clock(Actor):
 
         self._segment_markers = message['segment_markers']
         # last
-        self._video_total_duration = next(reversed(self._segment_markers.values()))['out']
+        self._video_duration_total = next(reversed(self._segment_markers.values()))['out']
 
-        self._check_ready()
+        self._update_status()
 
-    def _check_ready(self):
+    def _update_status(self):
         if self.video_duration_remaining is None:
-            self.ready = False
+            self.status = Actor.StatusEnum.OFFLINE
             return
 
         if self._segment_markers is None:
-            self.ready = False
+            self.status = Actor.StatusEnum.OFFLINE
             return
 
         if self.current_segment is None:
-            self.ready = False
+            self.status = Actor.StatusEnum.OFFLINE
             return
 
-        if self._video_total_duration is None:
-            self.ready = False
+        if self._video_duration_total is None:
+            self.status = Actor.StatusEnum.OFFLINE
             return
 
-        if self.ws_connected is False:
-            self.ready = False
-            return
+        self.status = Actor.StatusEnum.ACTIVE
 
-        # Seems dumb, but without the 'if' python treats self.ready as if it is always being
-        # set, even if the value didn't actually change. This generates a notification to all
-        # observers.
-        if not self.ready:
-            self.ready = True
+    @property
+    def ready(self):
+        return self.status is Actor.StatusEnum.ACTIVE
+
 
     @property
     def current_video_position(self):
-        return self._video_total_duration - self.video_duration_remaining
+        return self._video_duration_total - self.video_duration_remaining
 
     @property
     def segment_name(self):
@@ -132,15 +129,15 @@ class Clock(Actor):
 
     def reset(self):
         self.logger.info('Resetting timecode')
-        self.ready = False
+        self.status = Actor.StatusEnum.STANDBY
         self.current_segment = None
         self._segment_markers = None
-        self._video_total_duration = None
+        self._video_duration_total = None
 
     # alias for video_duration_remaining
     def update_timecode(self, message):
         # Throttle
-        if message.timestamp - self._last_update < Clock.THROTTLE_THRESHOLD:
+        if message.timestamp - self._last_update < self.THROTTLE_THRESHOLD:
             self.logger.info('Throttling timecode updates')
             return
 

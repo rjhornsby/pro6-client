@@ -5,7 +5,6 @@ import logging
 import sys
 from time import sleep
 import yaml
-from osc4py3.as_eventloop import *
 
 RTC_DISPLAY_ENABLE = True
 # TODO: Handle a reset condition - ie ProPresenter goes away

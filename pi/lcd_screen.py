@@ -2,13 +2,6 @@ import sys
 import pro6
 from .lcd import LCD
 from pro6.actor import Actor
-# from pro6.director import Roles
-import time
-
-try:
-    from . import I2C_LCD_driver
-except ModuleNotFoundError:
-    pass
 
 
 class LCDScreen(Actor):
@@ -16,7 +9,10 @@ class LCDScreen(Actor):
     def __init__(self, config):
         super().__init__(config)
 
-        if 'pi.I2C_LCD_driver' not in sys.modules:
+        try:
+            from . import I2C_LCD_driver
+        except ModuleNotFoundError as e:
+            self.logger.warning(e)
             self.logger.warning('I2C driver not loaded, disabling LCD')
             self.disable()
             return
@@ -50,8 +46,44 @@ class LCDScreen(Actor):
     def h_director_stopping(self, value):
         if value: self.stop()
 
+    def h_director_status(self, value):
+        self._display.clear()
+        if value is Actor.StatusEnum.OFFLINE:
+            self._display.display_message('ProPres: offline', 4)
+        elif value is Actor.StatusEnum.STANDBY:
+            self._display.display_message('ProPres: ready', 4)
+
     def h_director_event(self, value):
+        target = getattr(self, 'h_director_event_%s' % value['event'], None)
+        if target is None:
+            self.logger.warning('No handler for %s:' % value['event'])
+            return
+
+        target(value)
+
+    def h_director_event_slide_change(self, metadata):
+        self.logger.debug('slide change')
+        self._display.clear()
+
+    def h_clock_video_duration_remaining(self, value):
         pass
+
+    def h_clock_current_segment(self, value):
+        if value is None: return
+        self._display.clear()
+        self.logger.debug(value)
+        self._display.display_message('%s/%s' % (value['name'], value['control_data']['light_cue']), line=2)
+
+    # def _update_video_clocks(self, clock):
+    #     with self._t_lock:
+    #         self._display.lcd_display_string("-%s" % str(clock.segment_time_remaining), line=3, pos=12)
+    #         self._display.lcd_display_string("+%s" % str(clock.current_video_position), line=4, pos=0)
+    #         self._display.lcd_display_string("-%s" % str(clock.video_duration_remaining), line=4, pos=12)
+    #
+    # def _show_segment(self, name=None, cuelist_id=None):
+    #     self.clear()
+    #     with self._t_lock:
+    #         self._display.lcd_display_string("%s/%s" % (name, cuelist_id), line=2)
 
     # def h_client_message(self, param, value, *args):
     #     if param == 'stopping' and value is True:
@@ -83,4 +115,3 @@ class LCDScreen(Actor):
         self._display.rtc_stop()
         self._display.clear()
         self._display.backlight(False)
-

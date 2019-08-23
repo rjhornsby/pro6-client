@@ -13,6 +13,8 @@ pyyaml = "*"
 scapy = "*"
 netifaces = "*"
 netaddr = "*"
+board = "*"
+RPi.GPIO = "*"
 
 [dev-packages]
 

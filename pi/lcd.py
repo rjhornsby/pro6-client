@@ -1,5 +1,4 @@
 import time
-import pro6
 import threading
 import logging
 import sys
@@ -102,14 +101,15 @@ class LCD:
 
     def clear(self):
         if self._disabled: return
+        self.logger.debug('clearing')
         with self._t_lock:
             self._display.lcd_write(0x01)
 
-    def display_message(self, message_str: str, lcd_line: int = 4) -> None:
+    def display_message(self, message_str: str, line: int = 4, pos=0) -> None:
         if self._disabled: return
-        self._message_line = lcd_line
+        # self._message_line = lcd_line
         with self._t_lock:
-            self._display.lcd_display_string(message_str, line=lcd_line, pos=0)
+            self._display.lcd_display_string(message_str, line=line, pos=pos)
 
     # def clear_message(self):
     #     if self._disabled: return

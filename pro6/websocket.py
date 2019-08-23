@@ -25,6 +25,8 @@ class WebSocket(Actor):
         # message_pending is watched by director.
         # when the value is updated, the notification
         # causes the director to process the msg_queue.
+        # Note that _updating_ the value is enough, even
+        # if the value doesn't actually _change_
         self.message_pending = False
         self._msg_queue = msg_queue
 
