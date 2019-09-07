@@ -2,7 +2,7 @@ import base64
 import datetime
 from collections import OrderedDict
 import logging
-
+import json
 
 class Filter:
     logger = logging.getLogger(__name__)
@@ -73,7 +73,7 @@ class Filter:
                 'in': Filter.str_to_time(in_point.replace(';', ':')),
                 'out': Filter.str_to_time(out_point.replace(';', ':')),
                 'name': marker_name,
-                'control_data': control_data
+                'control_data': Filter.from_json(control_data)
             }
         Filter.set_out_points(data)
         return data
@@ -103,6 +103,14 @@ class Filter:
                 }
         return data
 
+    @staticmethod
+    def from_json(json_str):
+        try:
+            return json.loads(json_str)
+        except json.JSONDecodeError:
+            Filter.logger.warning('Could not decode json')
+            return None
+    
     @staticmethod
     def str_to_time(str_time):
         h, m, s, *trash = str_time.split(':', 3)

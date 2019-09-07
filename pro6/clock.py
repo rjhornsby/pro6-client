@@ -122,9 +122,8 @@ class Clock(Notifier, Subscriber):
     @property
     def cuelist_id(self):
         if self.control_data is None: return None
-
-        return self.control_data.split(':')[0]
-
+        
+        return self.control_data.get('light_cue', None)
     @property
     def hide_led(self):
         return '!' in self.control_data
