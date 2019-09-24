@@ -16,11 +16,11 @@ class LCD:
     logger = logging.getLogger(__name__)
 
     def __init__(self):
-        self._disabled = False
+        # self._disabled = False
 
         if 'pi.I2C_LCD_driver' not in sys.modules:
             self.logger.warning('I2C driver not loaded, disabling LCD')
-            self._disabled = True
+            # self._disabled = True
             return
 
         self._display = I2C_LCD_driver.lcd()
@@ -58,24 +58,21 @@ class LCD:
         self._display.backlight(int(state))
 
     def rtc_run(self):
-        if self._disabled: return
+        # if self._disabled: return
         self._stopping = False
         self._t = threading.Thread(target=self._rtc_loop)
         self._t.start()
         self._t.join(2.0)
 
     def rtc_stop(self):
-        if self._disabled: return
+        # if self._disabled: return
         self._stopping = True
 
     def _rtc_loop(self):
         while not self._stopping:
             with self._t_lock:
                 self._display.lcd_display_string(self._rtc_str(), 1, 0)
-            #     for (pos, char) in self.str_diff(stored_rtc_str, curr_rtc_str):
-            #         self._display.lcd_display_string(char, 1, pos)
-            # stored_rtc_str = curr_rtc_str
-            time.sleep(0.25)
+            time.sleep(0.5)
 
     def _rtc_str(self):
         # python uses a zero-based week number, calendars generally use one-based.
@@ -99,14 +96,17 @@ class LCD:
         rtc_str = str.format("{} {}", date_str, time_str)
         return rtc_str.rjust(self.LINE_WIDTH, ' ')[:self.LINE_WIDTH]
 
-    def clear(self):
-        if self._disabled: return
-        self.logger.debug('clearing')
+    def clear(self, line: int = None):
+        # FIXME: this gets called too often, and wipes out the block name from the display
+        # when writing the timecode clocks
         with self._t_lock:
-            self._display.lcd_write(0x01)
+            if line is None:
+                self._display.lcd_write(0x01)
+            else:
+                self._display.lcd_display_string(' '.join([''] * 20), line=line)
 
-    def display_message(self, message_str: str, line: int = 4, pos=0) -> None:
-        if self._disabled: return
+    def display_message(self, message_str: str, line: int = 4, pos: int = 0):
+        # if self._disabled: return
         # self._message_line = lcd_line
         with self._t_lock:
             self._display.lcd_display_string(message_str, line=line, pos=pos)
@@ -127,7 +127,3 @@ class LCD:
     #     with self._t_lock:
     #         self._display.lcd_display_string("%s/%s" % (name, cuelist_id), line=2)
 
-    def _reset(self):
-        self.clear()
-        self._segment_name = None
-        self._message_line = None

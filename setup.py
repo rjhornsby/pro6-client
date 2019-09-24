@@ -9,7 +9,7 @@ setup(
     author='rhornsby',
     author_email='',
     description='', install_requires=['lomond', 'board', 'osc4py3', 'netifaces', 'netaddr', 'scapy', 'zeroconf',
-                                      'PyYAML', 'RPi.GPIO', 'adafruit-circuitpython-neopixel', 'smbus']
+                                      'PyYAML', 'RPi.GPIO', 'adafruit-circuitpython-neopixel', 'smbus', 'requests']
 )
 
 

@@ -21,12 +21,19 @@ def load_config():
     return y_config
 
 
+# def configure_logging():
+#     fmt = "%(levelname)-8.8s %(asctime)s [%(name)s:%(module)s:%(funcName)s] %(message)s"
+#     logging.basicConfig(format=fmt, level=logging.getLevelName(config['logging_level'].upper()))
+#     logging.getLogger('lomond').setLevel(logging.INFO)
+
+
 if __name__ == "__main__":
     config = load_config()
 
-    fmt = "%(levelname)-8.8s [%(name)s:%(module)s:%(funcName)s] %(message)s"
+    fmt = "%(levelname)-8.8s %(asctime)s [%(name)s:%(module)s:%(funcName)s] %(message)s"
     logging.basicConfig(format=fmt, level=logging.getLevelName(config['logging_level'].upper()))
 
+    logging.getLogger('lomond').setLevel(logging.INFO)
     logging.info('Log level %s', logging.getLevelName(logging.getLogger().level))
     logging.info('Starting up')
 

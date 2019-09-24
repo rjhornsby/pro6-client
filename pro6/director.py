@@ -75,20 +75,24 @@ class Director(Actor):
         self.update_status()
         self.logger.debug('Connecting to pro6')
 
+        self.status_message = 'searching'
         self._actors[Roles.STAGE_DSP].discover()
+
+        self.status_message = 'connecting'
         self._actors[Roles.STAGE_DSP].connect()
+
         self._actors[Roles.STAGE_DSP].run()
 
-        self.logger.debug('Connecting to stage endpoint...')
+        self.logger.info('Connecting to stage endpoint...')
         # After failing a certain number of times, we should fall back
         # to discovery
         wait_counter = 0
         while self._actors[Roles.STAGE_DSP].status is Actor.StatusEnum.OFFLINE:
-            self.logger.debug('Waiting for connection (%i/%i)...', wait_counter, self.WAIT_RETRIES)
+            self.logger.info('Waiting for connection (%i/%i)...', wait_counter, self.WAIT_RETRIES)
             sleep(2)
             wait_counter += 1
             if wait_counter >= self.WAIT_RETRIES:
-                self.logger.warn("Failed connecting after %i tries", wait_counter)
+                self.logger.warn(f"Failed connecting after {wait_counter} tries")
                 self._actors[Roles.STAGE_DSP].stop()
                 sleep(10)
                 return
@@ -107,23 +111,25 @@ class Director(Actor):
         self._t.start()
 
     def stop(self):
+        self.status_message = 'stopping'
         self.logger.debug('Stopping thread')
 
         # child threads should be subscribed and watching `stopping` for changes
         self.stopping = True
 
     def recv_notice(self, obj, role, param, value):
-        if role is Roles.STAGE_DSP:
-            if param == 'status':
-                self.logger.debug("New stage display status: %s" % value)
+        if param == 'status':
+            if role is Roles.STAGE_DSP:
+                self.logger.debug(f"New stage display status: {value}")
                 if self._actors[Roles.STAGE_DSP].status is Actor.StatusEnum.OFFLINE:
                     self._actors[Roles.STAGE_DSP].stop()
-                self.update_status()
+            # any status notifications from anyone should cause us to update our status
+            self.update_status()
 
         if param == 'message_pending':
             self.process_messages()
         elif param == 'connected':
-            self.logger.info('Connected: %s', value)
+            self.logger.info(f"Connected: {value}")
             self.update_status()
 
     def update_status(self):
@@ -146,4 +152,4 @@ class Director(Actor):
             elif incoming_message.kind is pro6.Message.Kind.ERROR:
                 self.event = incoming_message
             else:
-                self.logger.debug("Unhandled queue object: %s" % incoming_message)
+                self.logger.debug(f"Unhandled queue object: {incoming_message}")

@@ -1,8 +1,7 @@
 # Created by .ignore support plugin (hsz.mobi)
 .idea/
 venv/
-actions
+scratch/actions
 pro6-cli
-rundown*
 __pycache__
 *.pyc

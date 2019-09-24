@@ -2,6 +2,7 @@ import pro6
 import datetime
 import sys
 from pro6.actor import Actor
+from marker.timecode import Timecode
 
 try:
     import RPi.GPIO as GPIO
@@ -10,10 +11,13 @@ try:
 except ModuleNotFoundError:
     pass
 
-PIXEL_COUNT = 10
-
 
 class LED(Actor):
+    PIXEL_COUNT = 10
+
+    GREEN_TIME = Timecode.from_str('0:0:30:0')
+    YELLOW_TIME = Timecode.from_str('0:0:10:0')
+    RED_TIME = Timecode.from_str('0:0:5:0')
 
     def __init__(self):
         super().__init__(None)
@@ -27,7 +31,8 @@ class LED(Actor):
                 return
 
         # Initialize the library (must be called once before other functions).
-        self.pixels = neopixel.NeoPixel(board.D18, PIXEL_COUNT)
+        self.pixels = neopixel.NeoPixel(board.D18, self.PIXEL_COUNT)
+
 
     @property
     def watching(self):
@@ -46,13 +51,13 @@ class LED(Actor):
         if not clock.ready: return
 
         if param == 'video_duration_remaining':
-            if clock.hide_led: return
+            if clock.control_data.get('hide_emcee_timer'): return
 
-            if clock.segment_time_remaining <= datetime.timedelta(seconds=5):
-                self.red(clock.segment_time_remaining)
-            elif clock.segment_time_remaining <= datetime.timedelta(seconds=10):
-                self.yellow(clock.segment_time_remaining)
-            elif clock.segment_time_remaining <= datetime.timedelta(seconds=30):
+            if clock.block_remaining <= self.RED_TIME:
+                self.red(clock.block_remaining)
+            elif clock.block_remaining <= self.YELLOW_TIME:
+                self.yellow(clock.block_remaining)
+            elif clock.block_remaining <= self.GREEN_TIME:
                 self.green()
             else:
                 self.clear()
@@ -67,18 +72,18 @@ class LED(Actor):
         self.pixels.fill((0, 255, 0))
         self.pixels.show()
 
-    def yellow(self, time_remaining):
+    def yellow(self, time_remaining: Timecode):
         if not self.enabled: return
-        count = int(time_remaining.total_seconds())
+        count = int(time_remaining.to_seconds())
         self.clear()
         for i in range(count):
             self.pixels[i] = (200, 200, 0)
 
         self.pixels.show()
 
-    def red(self, time_remaining):
+    def red(self, time_remaining: Timecode):
         if not self.enabled: return
-        count = int(time_remaining.total_seconds())
+        count = int(time_remaining.to_seconds())
         self.clear()
         for i in range(count):
             self.pixels[i] = (255, 0, 0)

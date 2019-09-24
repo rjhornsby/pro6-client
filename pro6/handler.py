@@ -16,7 +16,7 @@ class Handler:
             self.logger.debug("No method to handle action %s" % message.name)
 
     def _csn(self, message):
-        event = Message(message_content={'event': 'slide_change', 'segment_markers': message['segment_markers']})
+        event = Message(message_content={'event': 'slide_change', 'markers': message['markers']})
         self.manager_queue.put(event)
 
     def _vid(self, message):

@@ -1,6 +1,6 @@
 from enum import Enum
-import logging
 from observer import Subscriber, Notifier
+import typing
 
 
 class Actor(Subscriber, Notifier):
@@ -10,10 +10,9 @@ class Actor(Subscriber, Notifier):
         ACTIVE = 2
         DISABLED = 255
 
-    logger = logging.getLogger(__name__)
-
     def __init__(self, config):
         self._status = self.StatusEnum.OFFLINE
+        self._status_message: typing.Optional[str] = None
         self._endpoint = None
         self._discovered = False
         self.config = config
@@ -52,9 +51,20 @@ class Actor(Subscriber, Notifier):
 
     @status.setter
     def status(self, new_status):
+        self.logger.debug("Status change for %s: %s" % (self._role, new_status))
         if self._status is not new_status:
-            self.logger.debug('Setting new status %s (was: %s)' % (new_status, self._status))
+            self.logger.debug('Setting new status for %s: %s (was: %s)' % (self._role, new_status, self._status))
             self._status = new_status
+        else:
+            self.logger.debug("No status change needed for %s" % self._role)
+
+    @property
+    def status_message(self) -> str:
+        return self._status_message
+
+    @status_message.setter
+    def status_message(self, message: str):
+        self._status_message = message
 
     @property
     def discovered(self):
