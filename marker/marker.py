@@ -63,5 +63,8 @@ class Marker:
     def remarks(self, remarks):
         pass
 
+    def __contains__(self, item: Timecode):
+        return self.in_point <= item <= self.out_point
+
     def __lt__(self, other):
         return self._in_point < other.in_point

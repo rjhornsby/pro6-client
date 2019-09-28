@@ -17,18 +17,27 @@ class Discovery:
         iface_opts = ['en4', 'eth0', 'en0', 'wlan0']
         for iface in iface_opts:
             if iface in ni.interfaces():
-                self.logger.debug('Using interface %s', iface)
+                self.logger.info('Checking interface %s', iface)
                 self.iface_name = iface
+                if not self.network():
+                    self.logger.warning("Failed, trying next interface")
+                    continue
+                else:
+                    return
 
-        self.logger.warning('No suitable network interface available')
+        self.logger.error('No suitable network interface available')
 
     def network(self):
-        addrs = ni.ifaddresses(self.iface_name)
-        return addrs[ni.AF_INET]
+        try:
+            addrs = ni.ifaddresses(self.iface_name)
+            return addrs[ni.AF_INET]
+        except KeyError:
+            self.logger.warning(f"No AF_INET entry for interface {self.iface_name}")
 
     def local_network(self):
-        ip = netaddr.IPAddress(self.network()[0]['addr'])
-        netmask = netaddr.IPAddress(self.network()[0]['netmask'])
+        af_inet_entry = self.network()[0]
+        ip = netaddr.IPAddress(af_inet_entry['addr'])
+        netmask = netaddr.IPAddress(af_inet_entry['netmask'])
         net = netaddr.IPNetwork(str(ip) + '/' + str(netmask))
         return str(net.network) + '/' + str(net.prefixlen)
 
@@ -44,6 +53,6 @@ class Discovery:
                 self.logger.debug('Found ' + rcv.sprintf(r"%Ether.src% @ %ARP.psrc%"))
                 return rcv.sprintf(r"%ARP.psrc%")
         elif len(unanswered) > 0:
-            self.logger.warning(unanswered[0].getlayer(ARP).pdst, " cannot be reached")
+            self.logger.warning(f"{unanswered[0].getlayer(ARP).pdst} cannot be reached")
             return None
 

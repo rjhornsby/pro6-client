@@ -39,6 +39,8 @@ class ResolveMarkerEDL(Marker):
     @staticmethod
     def parse(content):
 
+        if content is None: return
+
         header_re = re.compile("[A-Z]+:")
         marker_re = re.compile("\d{3}\s+\d{3}\s+")
 

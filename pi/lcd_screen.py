@@ -53,10 +53,8 @@ class LCDScreen(Actor):
 
         target = getattr(self, 'h_%s_%s' % (role.name.lower(), param), None)
         if target is None:
-            self.logger.info('No handler for %s:%s:%s', type(obj), role, param)
+            self.logger.debug('No handler for %s:%s:%s', type(obj), role, param)
             return
-
-        self.logger.debug(f"Calling target {target} with {value}")
 
         target(value)
 
@@ -82,7 +80,10 @@ class LCDScreen(Actor):
 
         target(value)
 
-    def h_director_event_slide_change(self, _):
+    def h_director_event_video_advance(self, *_):
+        pass  # ignore this event
+
+    def h_director_event_slide_change(self, *_):
         self.logger.debug('slide change')
 
     def h_clock_tcr_negative(self, _):
@@ -105,7 +106,12 @@ class LCDScreen(Actor):
         return "{:d}:{:02d}:{:02d}".format(*tc_ints)
 
     def _update_video_clocks(self):
+        if self._clock.tcr_negative.to_seconds() == 0:
+            self._display.clear()
+            return
+
         if not self._clock.ready: return
+
         self._display.display_message(f"-{LCDScreen._format_clock(self._clock.block_remaining)}", line=3, pos=12)
         self._display.display_message(f"+{LCDScreen._format_clock(self._clock.tcr)}", line=4, pos=0)
         self._display.display_message(f"-{LCDScreen._format_clock(self._clock.tcr_negative)}", line=4, pos=12)

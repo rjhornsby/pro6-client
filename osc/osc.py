@@ -47,11 +47,11 @@ class HogOSC(Actor):
 
     def _send_osc_command(self, cuelist_id):
         if not self.enabled: return
-        if cuelist_id is None or cuelist_id is '':
+        if not cuelist_id:
             self.logger.info('No cuelist_id, cowardly refusing to send OSC command')
             return
 
-        self.logger.debug('Sending OSC cuelist_id ' + str(cuelist_id))
+        self.logger.info('Sending OSC cuelist_id ' + str(cuelist_id))
         msg = oscbuildparse.OSCMessage('/hog/playback/go/0', None, [str(cuelist_id)])
         osc_send(msg, "hog")
         osc_process()

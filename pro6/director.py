@@ -73,9 +73,6 @@ class Director(Actor):
 
     def connect_to_pro6(self):
         self.update_status()
-        self.logger.debug('Connecting to pro6')
-
-        self.status_message = 'searching'
         self._actors[Roles.STAGE_DSP].discover()
 
         self.status_message = 'connecting'

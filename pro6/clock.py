@@ -13,13 +13,14 @@ class Clock(Actor):
     THROTTLE_THRESHOLD:     float = 0.5
     _markers:               typing.Optional[MarkerTable]
     current_marker:         typing.Optional[Marker]
+    tcr_negative:           typing.Optional[Timecode]
 
     def __init__(self):
         super().__init__(None)
-        self.tcr_negative = None  # comes from pro6
+        self.tcr_negative   = None  # comes from pro6
         self.current_marker = None
-        self._markers = None
-        self._last_update = time.monotonic()
+        self._markers       = None
+        self._last_update   = time.monotonic()
 
     @property
     def watching(self):
@@ -44,14 +45,14 @@ class Clock(Actor):
         return self.status is Actor.StatusEnum.ACTIVE
 
     @property
-    def total_duration(self) -> typing.Optional[Timecode]:
+    def total_runtime(self) -> typing.Optional[Timecode]:
         if self._markers is None: return
 
         return self._markers.last.out_point
 
     @property
     def tcr(self) -> Timecode:
-        return self.total_duration - self.tcr_negative
+        return self.total_runtime - self.tcr_negative
 
     @property
     def marker_name(self) -> typing.Optional[str]:
@@ -67,12 +68,11 @@ class Clock(Actor):
 
     @property
     def block_remaining(self) -> Timecode:
-        # FIXME: "current_marker" is not correct here
         return self.current_marker.out_point - self.tcr
 
     def new_slide(self, message):
         self.reset()
-        if message['markers'] is None:
+        if not message['markers']:
             self.logger.info('No segment data for slide')
             return
 
@@ -97,7 +97,11 @@ class Clock(Actor):
         self._last_update = message.timestamp
         self.tcr_negative = message['timecode']
 
-        # self._timecode_updated()
+        if self.tcr_negative.to_seconds() == 0:
+            self.status = Actor.StatusEnum.STANDBY
+            self.reset()
+            return
+
         if self.current_marker is None:
             self._update_current_marker()
             return
@@ -106,9 +110,7 @@ class Clock(Actor):
             return
 
         # Update segment information
-        self.logger.debug("Updating marker")
         self._update_current_marker()
-        self.logger.info("New marker: %s" % self.current_marker.name)
 
     def _update_status(self):
         self.logger.debug('updating status')
@@ -124,21 +126,15 @@ class Clock(Actor):
             self.status = Actor.StatusEnum.OFFLINE
             return
 
-        if self.total_duration is None:
+        if self.total_runtime is None:
+            self.status = Actor.StatusEnum.OFFLINE
+            return
+
+        if self.tcr_negative.to_seconds() == 0:
             self.status = Actor.StatusEnum.OFFLINE
             return
 
         self.status = Actor.StatusEnum.ACTIVE
-
-    # def _timecode_updated(self):
-    #     if self.current_marker is None:
-    #         self._update_current_marker()
-    #     else:
-    #         # Update segment information
-    #         if self._markers.find(self.current_timecode) is not self.current_marker:
-    #             self.logger.debug("Updating marker")
-    #             self._update_current_marker()
-    #             self.logger.info("New marker: %s" % self.current_marker)
 
     def _update_current_marker(self):
         self.current_marker = self._markers.find(self.tcr)
