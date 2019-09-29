@@ -10,8 +10,9 @@ pro6:
     - Administrators-Mac-mini
     - Administrators-Mac-mini-2
 osc:
-  disabled: true
+  disabled: false
   list_id: 38
-#  mac_addr: 28:80:a2:06:46:d2
-  mac_addr: 00:16:76:9A:DC:CA
+  mac_addr: 00:1c:42:92:61:aa
+  # Override the discovery by MAC address and use the listed IP instead
+  discovery_override: 192.168.1.88
   port: 7001
