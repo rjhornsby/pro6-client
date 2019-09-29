@@ -34,6 +34,9 @@ class Timecode:
 
     def to_seconds(self) -> int:
         hours, minutes, seconds, smpte_token, frames = self.timecode
+        # If there are any leftover frames, round UP by adding a full second
+        if frames: seconds += 1
+
         return (hours * 60 * 60) + (minutes * 60) + seconds
 
     def __str__(self):
