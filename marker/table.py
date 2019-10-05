@@ -12,17 +12,18 @@ class MarkerTable:
     _cached_marker: typing.Optional[ResolveMarkerEDL]
     _markers:       typing.List[ResolveMarkerEDL]
 
-    def __init__(self, location):
+    def __init__(self, location: str):
         self._headers = {}
         self._markers = []
 
-        if location is None:
+        if not location:
             self.logger.error('No location provided, cannot retrieve marker data')
             return
 
-        self._cached_marker = None
         self.import_markers(location)
+        self._cached_marker = None
         self.set_out_points()
+        # FIXME: how are we getting to this point while the _markers array is empty?
         self.logger.info(f"video duration: {self.last.out_point} / {self.last.duration}")
 
     def import_markers(self, location: str):
@@ -65,14 +66,14 @@ class MarkerTable:
         pass
 
     def from_url(self, url) -> typing.Optional[str]:
+        self.logger.info(f"Retrieving markers from {url}")
         try:
-            self.logger.info(f"Retrieving markers from {url}")
             with requests.get(url) as response:
                 return response.content.decode()
         except requests.exceptions.HTTPError as e:
-            MarkerTable.logger.warning(e)
-
-        return None
+            self.logger.warning(e)
+        except requests.exceptions.MissingSchema:
+            self.logger.warning('No marker data or invalid marker URL')
 
     @property
     def dropframe(self) -> bool:
