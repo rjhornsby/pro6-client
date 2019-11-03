@@ -64,6 +64,7 @@ class LCDScreen(Actor):
     def h_director_status(self, value):
         self._display.clear(line=4)
         if value is Actor.StatusEnum.OFFLINE:
+            self._display.clear()
             self._display.display_message('ProPres: offline', 4)
         elif value is Actor.StatusEnum.STANDBY:
             self._display.display_message('ProPres: ready', 4)
